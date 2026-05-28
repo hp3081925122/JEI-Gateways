@@ -76,7 +76,7 @@ public class GatewayEntityWaveScrollWidget implements ISlottedRecipeWidget, IJei
         int scrollPixels = this.getScrollPixels();
         poseStack.translate(0.0D, -scrollPixels, 0.0D);
         GatewayEntityCategory.drawScrollableContents(this.recipe, guiGraphics, 0, 0, CONTENT_WIDTH, this.modifierStartY);
-        this.drawEggSlots(guiGraphics, scrollPixels);
+        this.drawEggSlots(guiGraphics);
         poseStack.popPose();
         guiGraphics.disableScissor();
     }
@@ -150,11 +150,11 @@ public class GatewayEntityWaveScrollWidget implements ISlottedRecipeWidget, IJei
         return true;
     }
 
-    private void drawEggSlots(GuiGraphics guiGraphics, int scrollPixels) {
+    private void drawEggSlots(GuiGraphics guiGraphics) {
         int index = 0;
         for (IRecipeSlotDrawable eggSlot : this.eggSlots) {
             int x = GatewayEntityCategory.getEggGridX() + (index % GatewayEntityCategory.getEggGridColumns()) * GatewayEntityCategory.getSlotSpacing() + 1;
-            int y = GatewayEntityCategory.getEggGridY() + (index / GatewayEntityCategory.getEggGridColumns()) * GatewayEntityCategory.getSlotSpacing() + 1 - scrollPixels;
+            int y = GatewayEntityCategory.getEggGridY() + (index / GatewayEntityCategory.getEggGridColumns()) * GatewayEntityCategory.getSlotSpacing() + 1;
             eggSlot.setPosition(x, y);
             eggSlot.draw(guiGraphics);
             index++;

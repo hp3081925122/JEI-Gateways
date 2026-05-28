@@ -101,6 +101,7 @@ public class JeiGatewaysPlugin implements IModPlugin {
                 .get()
                 .map(category -> category.getRecipeType().getUid())
                 .filter(id -> !GatewayEntityCategory.TYPE.getUid().equals(id))
+                .filter(id -> !GatewayLootCategory.TYPE.getUid().equals(id))
                 .collect(Collectors.toSet());
         return !categoryIds.isEmpty();
     }

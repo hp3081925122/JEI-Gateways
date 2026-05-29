@@ -97,7 +97,7 @@ public class GatewayEntityWaveScrollWidget implements ISlottedRecipeWidget, IJei
         double adjustedMouseY = mouseY + this.getScrollPixels();
         for (IRecipeSlotDrawable eggSlot : this.eggSlots) {
             if (eggSlot.isMouseOver(mouseX, adjustedMouseY)) {
-                return Optional.of(new RecipeSlotUnderMouse(eggSlot, 0, -this.getScrollPixels()));
+                return Optional.of(new RecipeSlotUnderMouse(eggSlot, this.area.x(), this.area.y() - this.getScrollPixels()));
             }
         }
         return Optional.empty();

@@ -6,6 +6,7 @@ import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
+import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -27,12 +28,12 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     private static final int WIDTH = 180;
     private static final int HEIGHT = 138;
     private static final int SLOT_SIZE = 18;
-    private static final int GRID_COLUMNS = 7;
-    private static final int GRID_ROWS = 4;
     private static final int PEARL_X = 8;
     private static final int PEARL_Y = 8;
-    private static final int GRID_X = 8;
-    private static final int GRID_Y = 44;
+    private static final int CONTENT_X = 8;
+    private static final int CONTENT_Y = 44;
+    private static final int CONTENT_WIDTH = 160;
+    private static final int CONTENT_HEIGHT = 82;
 
     private final IDrawableStatic background;
     private final IDrawable icon;
@@ -69,11 +70,10 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
                 .setSlotName("pearl")
                 .addTooltipCallback((slot, tooltip) -> addPearlTooltip(recipe, tooltip));
 
-        for (int i = 0; i < recipe.outputs().size() && i < GRID_COLUMNS * GRID_ROWS; i++) {
-            int x = GRID_X + (i % GRID_COLUMNS) * SLOT_SIZE;
-            int y = GRID_Y + (i / GRID_COLUMNS) * SLOT_SIZE;
-            builder.addSlot(RecipeIngredientRole.OUTPUT, x, y)
-                    .addItemStack(recipe.outputs().get(i));
+        for (ItemStack output : recipe.outputs()) {
+            builder.addSlot(RecipeIngredientRole.OUTPUT, CONTENT_X, CONTENT_Y)
+                    .setStandardSlotBackground()
+                    .addItemStack(output);
         }
     }
 
@@ -81,14 +81,19 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public void draw(GatewayLootRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         drawSlotFrame(guiGraphics, PEARL_X, PEARL_Y);
-        for (int i = 0; i < recipe.outputs().size() && i < GRID_COLUMNS * GRID_ROWS; i++) {
-            int x = GRID_X + (i % GRID_COLUMNS) * SLOT_SIZE;
-            int y = GRID_Y + (i / GRID_COLUMNS) * SLOT_SIZE;
-            drawSlotFrame(guiGraphics, x, y);
-        }
+        GatewayEntityCategory.drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), 30, 10, 0xFF1F1F1F, false);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_page", recipe.pageIndex() + 1, recipe.pageCount()), 30, 24, 0xFF2A2A2A, false);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 118, 24, 0xFF2A2A2A, false);
+        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 30, 24, 0xFF2A2A2A, false);
+    }
+
+    @Override
+    public void createRecipeExtras(mezz.jei.api.gui.widgets.IRecipeExtrasBuilder builder, GatewayLootRecipe recipe, IFocusGroup focuses) {
+        List<IRecipeSlotDrawable> outputSlots = builder.getRecipeSlots().getSlots().stream()
+                .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
+                .toList();
+        GatewayLootScrollWidget widget = new GatewayLootScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT, outputSlots);
+        builder.addSlottedWidget(widget, outputSlots);
+        builder.addInputHandler(widget);
     }
 
     @Override
@@ -101,7 +106,6 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
 
     private static void addPearlTooltip(GatewayLootRecipe recipe, List<Component> tooltip) {
         tooltip.add(Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()).withStyle(ChatFormatting.GRAY));
-        tooltip.add(Component.translatable("jei.jei_gateways.loot_page", recipe.pageIndex() + 1, recipe.pageCount()).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()).withStyle(ChatFormatting.GRAY));
     }
 

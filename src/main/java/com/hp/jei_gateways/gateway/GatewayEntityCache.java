@@ -541,11 +541,11 @@ public final class GatewayEntityCache {
         }
 
         if (entityTag.getBoolean("Glowing")) {
-            putModifier(modifiers, Component.literal("发光"));
+            putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.glowing"));
         }
 
         if (entityTag.contains("Health")) {
-            putModifier(modifiers, Component.literal("生命值：" + NUMBER_FORMAT.format(entityTag.getFloat("Health"))));
+            putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.health", NUMBER_FORMAT.format(entityTag.getFloat("Health"))));
         }
 
         if (entityTag.contains("ActiveEffects", CompoundTag.TAG_LIST)) {
@@ -559,9 +559,9 @@ public final class GatewayEntityCache {
                 }
                 ResourceLocation effectKey = ResourceLocation.tryParse(effectId);
                 MobEffect effect = effectKey == null ? null : ForgeRegistries.MOB_EFFECTS.getValue(effectKey);
-                String effectName = effect == null ? effectId : Component.translatable(effect.getDescriptionId()).getString();
+                Component effectName = effect == null ? Component.literal(effectId) : Component.translatable(effect.getDescriptionId());
                 int amplifier = effectTag.getInt("Amplifier") + 1;
-                putModifier(modifiers, Component.literal("效果：" + effectName + " " + amplifier + " 级"));
+                putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.effect", effectName, amplifier));
             });
         }
     }

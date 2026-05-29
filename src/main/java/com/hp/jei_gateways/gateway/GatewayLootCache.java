@@ -13,7 +13,6 @@ import java.util.Map;
 import java.util.Set;
 
 public final class GatewayLootCache {
-    private static final int PAGE_SIZE = 28;
     private static final Map<GatewayEntityCache.ItemStackKey, List<GatewayLootRecipe>> BY_ITEM = new HashMap<>();
     private static List<GatewayLootRecipe> allRecipes = List.of();
 
@@ -76,30 +75,23 @@ public final class GatewayLootCache {
                 continue;
             }
 
-            int pageCount = Math.max(1, (outputs.size() + PAGE_SIZE - 1) / PAGE_SIZE);
-            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
-                int fromIndex = pageIndex * PAGE_SIZE;
-                int toIndex = Math.min(outputs.size(), fromIndex + PAGE_SIZE);
-                GatewayLootRecipe lootRecipe = new GatewayLootRecipe(
-                        entityRecipe.gatewayId(),
-                        entityRecipe.pearl().copy(),
-                        List.copyOf(outputs.subList(fromIndex, toIndex)),
-                        pageIndex,
-                        pageCount,
-                        outputs.size()
-                );
-                built.add(lootRecipe);
-                indexRecipe(byItem, lootRecipe);
-            }
+            GatewayLootRecipe lootRecipe = new GatewayLootRecipe(
+                    entityRecipe.gatewayId(),
+                    entityRecipe.pearl().copy(),
+                    List.copyOf(outputs),
+                    0,
+                    1,
+                    outputs.size()
+            );
+            built.add(lootRecipe);
+            indexRecipe(byItem, lootRecipe);
         }
 
         built.sort(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.pearl().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(recipe -> recipe.gatewayId().toString())
-                .thenComparingInt(GatewayLootRecipe::pageIndex));
+                .thenComparing(recipe -> recipe.gatewayId().toString()));
         byItem.replaceAll((key, value) -> value.stream()
                 .distinct()
-                .sorted(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.gatewayId().toString())
-                        .thenComparingInt(GatewayLootRecipe::pageIndex))
+                .sorted(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.gatewayId().toString()))
                 .toList());
         BY_ITEM.putAll(byItem);
         allRecipes = List.copyOf(built);

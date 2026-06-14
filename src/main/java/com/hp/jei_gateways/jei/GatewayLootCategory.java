@@ -6,7 +6,6 @@ import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
 import mezz.jei.api.gui.drawable.IDrawableStatic;
-import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -34,6 +33,8 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     private static final int CONTENT_Y = 44;
     private static final int CONTENT_WIDTH = 160;
     private static final int CONTENT_HEIGHT = 82;
+    private static final int GRID_COLUMNS = 7;
+    private static final int VISIBLE_ROWS = 4;
 
     private final IDrawableStatic background;
     private final IDrawable icon;
@@ -88,12 +89,11 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
 
     @Override
     public void createRecipeExtras(mezz.jei.api.gui.widgets.IRecipeExtrasBuilder builder, GatewayLootRecipe recipe, IFocusGroup focuses) {
-        List<IRecipeSlotDrawable> outputSlots = builder.getRecipeSlots().getSlots().stream()
+        List<mezz.jei.api.gui.ingredient.IRecipeSlotDrawable> outputSlots = builder.getRecipeSlots().getSlots().stream()
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
-        GatewayLootScrollWidget widget = new GatewayLootScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT, outputSlots);
-        builder.addSlottedWidget(widget, outputSlots);
-        builder.addInputHandler(widget);
+        builder.addScrollGridWidget(outputSlots, GRID_COLUMNS, VISIBLE_ROWS)
+                .setPosition(CONTENT_X, CONTENT_Y);
     }
 
     @Override

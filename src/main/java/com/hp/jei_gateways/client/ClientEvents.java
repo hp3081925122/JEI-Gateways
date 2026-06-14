@@ -3,14 +3,15 @@ package com.hp.jei_gateways.client;
 import com.hp.jei_gateways.JeiGateways;
 import com.hp.jei_gateways.gateway.GatewayEntityCache;
 import com.hp.jei_gateways.gateway.GatewayLootCache;
-import net.minecraftforge.api.distmarker.Dist;
-import net.minecraftforge.client.event.RecipesUpdatedEvent;
-import net.minecraftforge.event.TagsUpdatedEvent;
-import net.minecraftforge.event.server.ServerStoppedEvent;
-import net.minecraftforge.eventbus.api.SubscribeEvent;
-import net.minecraftforge.fml.common.Mod;
+import com.hp.jei_gateways.jei.JeiGatewaysPlugin;
+import net.neoforged.api.distmarker.Dist;
+import net.neoforged.bus.api.SubscribeEvent;
+import net.neoforged.fml.common.EventBusSubscriber;
+import net.neoforged.neoforge.client.event.RecipesUpdatedEvent;
+import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
-@Mod.EventBusSubscriber(modid = JeiGateways.MODID, value = Dist.CLIENT)
+@EventBusSubscriber(modid = JeiGateways.MODID, value = Dist.CLIENT)
 public final class ClientEvents {
     private ClientEvents() {
     }
@@ -19,6 +20,7 @@ public final class ClientEvents {
     public static void onRecipesUpdated(RecipesUpdatedEvent event) {
         GatewayEntityCache.rebuild();
         GatewayLootCache.rebuild();
+        JeiGatewaysPlugin.refreshRuntimeRecipes();
     }
 
     @SubscribeEvent
@@ -26,6 +28,7 @@ public final class ClientEvents {
         if (event.shouldUpdateStaticData()) {
             GatewayEntityCache.rebuild();
             GatewayLootCache.rebuild();
+            JeiGatewaysPlugin.refreshRuntimeRecipes();
         }
     }
 

@@ -40,8 +40,8 @@ public class JeiGatewaysPlugin implements IModPlugin {
 
     @Override
     public void registerCategories(IRecipeCategoryRegistration registration) {
-        registration.addRecipeCategories(new GatewayEntityCategory(registration.getJeiHelpers().getGuiHelper(), new ItemStack(GatewayObjects.GATE_PEARL.get())));
-        registration.addRecipeCategories(new GatewayLootCategory(registration.getJeiHelpers().getGuiHelper(), new ItemStack(GatewayObjects.GATE_PEARL.get())));
+        registration.addRecipeCategories(new GatewayEntityCategory(registration.getJeiHelpers().getGuiHelper(), new ItemStack(GatewayObjects.GATE_PEARL.value())));
+        registration.addRecipeCategories(new GatewayLootCategory(registration.getJeiHelpers().getGuiHelper(), new ItemStack(GatewayObjects.GATE_PEARL.value())));
     }
 
     @Override
@@ -78,6 +78,24 @@ public class JeiGatewaysPlugin implements IModPlugin {
         else {
             JeiGateways.LOGGER.warn("JEI Gateways 未找到可展示的 Gateway 实体珍珠配方。");
         }
+    }
+
+    public static void refreshRuntimeRecipes() {
+        if (jeiRuntime == null || registeredRecipeCount > 0) {
+            return;
+        }
+
+        List<GatewayEntityRecipe> entityRecipes = GatewayEntityCache.getRecipes();
+        if (entityRecipes.isEmpty()) {
+            JeiGateways.LOGGER.info("JEI runtime refresh skipped because entity recipe cache is still empty.");
+            return;
+        }
+
+        List<GatewayLootRecipe> lootRecipes = GatewayLootCache.getRecipes();
+        jeiRuntime.getRecipeManager().addRecipes(GatewayEntityCategory.TYPE, entityRecipes);
+        jeiRuntime.getRecipeManager().addRecipes(GatewayLootCategory.TYPE, lootRecipes);
+        registeredRecipeCount = entityRecipes.size();
+        JeiGateways.LOGGER.info("JEI runtime refresh added {} entity recipes and {} loot recipes.", entityRecipes.size(), lootRecipes.size());
     }
 
     public static boolean hasOtherRecipePages(ItemStack stack) {
@@ -146,7 +164,7 @@ public class JeiGatewaysPlugin implements IModPlugin {
             for (GatewayEntityRecipe directMatch : directMatches) {
                 for (GatewayEntityRecipe recipe : GatewayEntityCache.getRecipes()) {
                     if (recipe.gatewayId().equals(directMatch.gatewayId())
-                            && ItemStack.isSameItemSameTags(recipe.pearl(), directMatch.pearl())) {
+                            && ItemStack.isSameItemSameComponents(recipe.pearl(), directMatch.pearl())) {
                         expanded.add(recipe);
                     }
                 }

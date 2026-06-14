@@ -1,5 +1,4 @@
 package com.hp.jei_gateways.gateway;
-
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.resources.ResourceLocation;
 import net.minecraft.world.item.ItemStack;
@@ -13,6 +12,7 @@ import java.util.Map;
 import java.util.Set;
 
 public final class GatewayLootCache {
+    private static final int PAGE_SIZE = 28;
     private static final Map<GatewayEntityCache.ItemStackKey, List<GatewayLootRecipe>> BY_ITEM = new HashMap<>();
     private static List<GatewayLootRecipe> allRecipes = List.of();
 
@@ -38,7 +38,7 @@ public final class GatewayLootCache {
         for (GatewayLootRecipe directMatch : directMatches) {
             for (GatewayLootRecipe recipe : allRecipes) {
                 if (recipe.gatewayId().equals(directMatch.gatewayId())
-                        && ItemStack.isSameItemSameTags(recipe.pearl(), directMatch.pearl())) {
+                        && ItemStack.isSameItemSameComponents(recipe.pearl(), directMatch.pearl())) {
                     expanded.add(recipe);
                 }
             }
@@ -74,25 +74,31 @@ public final class GatewayLootCache {
             if (outputs.isEmpty()) {
                 continue;
             }
-
-            GatewayLootRecipe lootRecipe = new GatewayLootRecipe(
-                    entityRecipe.gatewayId(),
-                    entityRecipe.pearl().copy(),
-                    entityRecipe.pearlTooltipText() == null ? null : entityRecipe.pearlTooltipText().copy(),
-                    List.copyOf(outputs),
-                    0,
-                    1,
-                    outputs.size()
-            );
-            built.add(lootRecipe);
-            indexRecipe(byItem, lootRecipe);
+            int pageCount = Math.max(1, (outputs.size() + PAGE_SIZE - 1) / PAGE_SIZE);
+            for (int pageIndex = 0; pageIndex < pageCount; pageIndex++) {
+                int fromIndex = pageIndex * PAGE_SIZE;
+                int toIndex = Math.min(outputs.size(), fromIndex + PAGE_SIZE);
+                GatewayLootRecipe lootRecipe = new GatewayLootRecipe(
+                        entityRecipe.gatewayId(),
+                        entityRecipe.pearl().copy(),
+                        entityRecipe.pearlTooltipText() == null ? null : entityRecipe.pearlTooltipText().copy(),
+                        List.copyOf(outputs.subList(fromIndex, toIndex)),
+                        pageIndex,
+                        pageCount,
+                        outputs.size()
+                );
+                built.add(lootRecipe);
+                indexRecipe(byItem, lootRecipe);
+            }
         }
 
         built.sort(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.pearl().getHoverName().getString(), String.CASE_INSENSITIVE_ORDER)
-                .thenComparing(recipe -> recipe.gatewayId().toString()));
+                .thenComparing(recipe -> recipe.gatewayId().toString())
+                .thenComparingInt(GatewayLootRecipe::pageIndex));
         byItem.replaceAll((key, value) -> value.stream()
                 .distinct()
-                .sorted(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.gatewayId().toString()))
+                .sorted(Comparator.comparing((GatewayLootRecipe recipe) -> recipe.gatewayId().toString())
+                        .thenComparingInt(GatewayLootRecipe::pageIndex))
                 .toList());
         BY_ITEM.putAll(byItem);
         allRecipes = List.copyOf(built);

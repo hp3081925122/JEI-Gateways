@@ -16,7 +16,7 @@ public record GatewayLootRecipe(
         int totalOutputCount
 ) {
     public boolean matchesPearl(ItemStack stack) {
-        return !stack.isEmpty() && ItemStack.isSameItemSameTags(pearl, stack);
+        return !stack.isEmpty() && ItemStack.isSameItemSameComponents(pearl, stack);
     }
 
     public boolean matchesOutput(ItemStack stack) {
@@ -24,7 +24,7 @@ public record GatewayLootRecipe(
             return false;
         }
         for (ItemStack output : outputs) {
-            if (ItemStack.isSameItemSameTags(output, stack)) {
+            if (ItemStack.isSameItemSameComponents(output, stack)) {
                 return true;
             }
         }

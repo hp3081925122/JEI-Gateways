@@ -18,7 +18,7 @@ import mezz.jei.api.runtime.IIngredientManager;
 import mezz.jei.api.runtime.IJeiRuntime;
 import mezz.jei.api.recipe.IFocus;
 import mezz.jei.api.recipe.RecipeIngredientRole;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.LinkedHashSet;
@@ -29,12 +29,12 @@ import java.util.stream.Collectors;
 
 @JeiPlugin
 public class JeiGatewaysPlugin implements IModPlugin {
-    private static final ResourceLocation UID = ResourceLocation.fromNamespaceAndPath(JeiGateways.MODID, "jei_plugin");
+    private static final Identifier UID = Identifier.fromNamespaceAndPath(JeiGateways.MODID, "jei_plugin");
     private static int registeredRecipeCount = 0;
     private static IJeiRuntime jeiRuntime;
 
     @Override
-    public ResourceLocation getPluginUid() {
+    public Identifier getPluginUid() {
         return UID;
     }
 
@@ -112,7 +112,7 @@ public class JeiGatewaysPlugin implements IModPlugin {
             return false;
         }
 
-        Set<ResourceLocation> categoryIds = jeiRuntime.getRecipeManager()
+        Set<Identifier> categoryIds = jeiRuntime.getRecipeManager()
                 .createRecipeCategoryLookup()
                 .limitFocus(List.of(focus.get()))
                 .includeHidden()

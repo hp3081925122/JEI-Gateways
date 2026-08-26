@@ -27,13 +27,27 @@ side = "BOTH"
 [[dependencies."${mod_id}"]]
 modId = "jei"
 type = "required"
-versionRange = "[19.27.0,)"
+versionRange = "${jei_version_range}"
 ordering = "AFTER"
 side = "BOTH"
 
 [[dependencies."${mod_id}"]]
 modId = "gateways"
 type = "required"
-versionRange = "[5.1.0,)"
+versionRange = "${gateways_version_range}"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "placebo"
+type = "required"
+versionRange = "${placebo_version_range}"
+ordering = "AFTER"
+side = "BOTH"
+
+[[dependencies."${mod_id}"]]
+modId = "apothic_attributes"
+type = "required"
+versionRange = "${apothic_attributes_version_range}"
 ordering = "AFTER"
 side = "BOTH"

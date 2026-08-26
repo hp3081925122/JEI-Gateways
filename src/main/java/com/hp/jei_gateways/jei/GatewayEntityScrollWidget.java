@@ -2,19 +2,18 @@ package com.hp.jei_gateways.jei;
 
 import com.hp.jei_gateways.gateway.GatewayEntityRecipe;
 import com.mojang.blaze3d.platform.InputConstants;
-import com.mojang.blaze3d.systems.RenderSystem;
-import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.inputs.IJeiInputHandler;
 import mezz.jei.api.gui.inputs.IJeiUserInput;
 import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
 import net.minecraft.client.renderer.Rect2i;
 import net.minecraft.util.Mth;
+import org.joml.Matrix3x2fStack;
 
 import java.util.List;
 import java.util.Optional;
@@ -59,28 +58,24 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
     }
 
     @Override
-    public void drawWidget(GuiGraphics guiGraphics, double mouseX, double mouseY) {
+    public void drawWidget(GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY) {
         drawPanel(guiGraphics, this.scrollArea);
         Rect2i scrollbarMarkerArea = this.calculateScrollbarMarkerArea();
         drawMarker(guiGraphics, scrollbarMarkerArea);
 
-        PoseStack poseStack = guiGraphics.pose();
-        var pose = poseStack.last().pose();
-        int absoluteX = Math.round(pose.m30());
-        int absoluteY = Math.round(pose.m31());
-        int scissorLeft = absoluteX + this.contentsArea.getX();
-        int scissorTop = absoluteY + this.contentsArea.getY();
-        int scissorRight = scissorLeft + this.contentsArea.getWidth();
-        int scissorBottom = scissorTop + this.contentsArea.getHeight();
-        guiGraphics.enableScissor(scissorLeft, scissorTop, scissorRight, scissorBottom);
-        poseStack.pushPose();
+        Matrix3x2fStack poseStack = guiGraphics.pose();
+        guiGraphics.enableScissor(
+                this.contentsArea.getX() + 1,
+                this.contentsArea.getY() + 1,
+                this.contentsArea.getX() + this.contentsArea.getWidth(),
+                this.contentsArea.getY() + this.contentsArea.getHeight() - 1
+        );
+        poseStack.pushMatrix();
         int scrollPixels = this.getScrollPixels();
-        poseStack.translate(0.0D, -scrollPixels, 0.0D);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
+        poseStack.translate(0.0F, -scrollPixels);
         GatewayEntityCategory.drawScrollableContents(this.recipe, guiGraphics, 0, 0);
-        RenderSystem.setShaderColor(1.0F, 1.0F, 1.0F, 1.0F);
         this.drawEggSlots(guiGraphics);
-        poseStack.popPose();
+        poseStack.popMatrix();
         guiGraphics.disableScissor();
     }
 
@@ -141,7 +136,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
 
     @Override
     public boolean handleMouseDragged(double mouseX, double mouseY, InputConstants.Key mouseKey, double dragX, double dragY) {
-        if (this.dragOriginY < 0.0D || mouseKey.getValue() != 0) {
+        if (this.dragOriginY < 0.0D || mouseKey.getValue() != InputConstants.MOUSE_BUTTON_LEFT) {
             return false;
         }
         Rect2i scrollbarMarkerArea = this.calculateScrollbarMarkerArea();
@@ -150,7 +145,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
         return true;
     }
 
-    private void drawEggSlots(GuiGraphics guiGraphics) {
+    private void drawEggSlots(GuiGraphicsExtractor guiGraphics) {
         for (int i = 0; i < this.eggSlots.size(); i++) {
             IRecipeSlotDrawable eggSlot = this.eggSlots.get(i);
             int x = GatewayEntityCategory.getEggGridX() + (i % GatewayEntityCategory.getEggGridColumns()) * GatewayEntityCategory.getSlotSpacing() + 1;
@@ -205,7 +200,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
                 && mouseY < rect.getY() + rect.getHeight();
     }
 
-    private static void drawPanel(GuiGraphics guiGraphics, Rect2i rect) {
+    private static void drawPanel(GuiGraphicsExtractor guiGraphics, Rect2i rect) {
         int x = rect.getX();
         int y = rect.getY();
         int width = rect.getWidth();
@@ -217,7 +212,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
         guiGraphics.fill(x, y + height - 1, x + width, y + height, BORDER_DARK);
     }
 
-    private static void drawMarker(GuiGraphics guiGraphics, Rect2i rect) {
+    private static void drawMarker(GuiGraphicsExtractor guiGraphics, Rect2i rect) {
         int x = rect.getX();
         int y = rect.getY();
         int width = rect.getWidth();

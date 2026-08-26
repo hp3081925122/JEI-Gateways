@@ -1,6 +1,7 @@
 {
   "pack": {
-    "pack_format": 15,
+    "min_format": 84,
+    "max_format": [101, 1],
     "description": "JEI Gateways 测试传送门数据包"
   }
 }

@@ -78,11 +78,12 @@
 
 运行本模组至少需要：
 
-- Minecraft 1.20.1
-- Forge
+- Minecraft 26.1.2
+- NeoForge
 - JEI
 - Gateways To Eternity
 - Placebo
+- Apothic Attributes
 
 `LootJS` 兼容是可选的，不是硬前置。  
 如果未安装 `LootJS`，模组仍然可以正常工作，只是不会额外读取 LootJS 的运行时掉落修改结果。
@@ -177,11 +178,12 @@ Instead, it is designed as a focused JEI-side query tool for gateway-related con
 
 This mod requires:
 
-- Minecraft 1.20.1
-- Forge
+- Minecraft 26.1.2
+- NeoForge
 - JEI
 - Gateways To Eternity
 - Placebo
+- Apothic Attributes
 
 `LootJS` support is optional and not a hard dependency.  
 If LootJS is not installed, the mod still works normally, but it will not include LootJS runtime loot modifications in its lookup results.

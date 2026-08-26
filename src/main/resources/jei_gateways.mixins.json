@@ -2,7 +2,7 @@
   "required": true,
   "minVersion": "0.8",
   "package": "com.hp.jei_gateways.mixin",
-  "compatibilityLevel": "JAVA_8",
+  "compatibilityLevel": "JAVA_25",
   "refmap": "jei_gateways.refmap.json",
   "mixins": [
   ],

@@ -1,13 +1,13 @@
 package com.hp.jei_gateways.gateway;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.network.chat.Component;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
 
 public record GatewayLootRecipe(
-        ResourceLocation gatewayId,
+        Identifier gatewayId,
         ItemStack pearl,
         Component pearlTooltipText,
         List<ItemStack> outputs,

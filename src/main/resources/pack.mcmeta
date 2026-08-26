@@ -1,6 +1,7 @@
 {
   "pack": {
     "description": "jei_gateways resources",
-    "pack_format": 34
+    "min_format": 84,
+    "max_format": [101, 1]
   }
 }

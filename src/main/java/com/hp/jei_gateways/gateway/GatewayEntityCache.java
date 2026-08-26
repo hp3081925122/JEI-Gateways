@@ -8,6 +8,7 @@ import com.hp.jei_gateways.JeiGateways;
 import dev.shadowsoffire.gateways.GatewayObjects;
 import dev.shadowsoffire.gateways.gate.Gateway;
 import dev.shadowsoffire.gateways.gate.Reward;
+import dev.shadowsoffire.gateways.gate.StandardWaveEntity;
 import dev.shadowsoffire.gateways.gate.Wave;
 import dev.shadowsoffire.gateways.gate.WaveEntity;
 import dev.shadowsoffire.gateways.gate.WaveModifier;
@@ -17,12 +18,14 @@ import dev.shadowsoffire.gateways.gate.normal.NormalGateway;
 import dev.shadowsoffire.gateways.item.GatePearlItem;
 import net.minecraft.client.Minecraft;
 import net.minecraft.server.MinecraftServer;
+import net.minecraft.core.Holder;
 import net.minecraft.core.NonNullList;
 import net.minecraft.core.registries.BuiltInRegistries;
 import net.minecraft.core.registries.Registries;
 import net.minecraft.network.chat.Component;
 import net.minecraft.nbt.CompoundTag;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
+import net.minecraft.resources.ResourceKey;
 import net.minecraft.server.packs.resources.Resource;
 import net.minecraft.server.packs.resources.ResourceManager;
 import net.minecraft.tags.TagKey;
@@ -33,12 +36,12 @@ import net.minecraft.world.item.CreativeModeTab;
 import net.minecraft.world.item.CreativeModeTabs;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
+import net.minecraft.world.item.ItemStackTemplate;
 import net.minecraft.world.item.SpawnEggItem;
 import net.minecraft.world.level.Level;
 
 import java.io.IOException;
 import java.io.Reader;
-import java.lang.reflect.Field;
 import java.text.DecimalFormat;
 import java.util.ArrayList;
 import java.util.Collection;
@@ -54,9 +57,6 @@ import java.util.Optional;
 import java.util.Set;
 
 public final class GatewayEntityCache {
-    private static final Field STANDARD_WAVE_ENTITY_TYPE = findStandardWaveEntityTypeField();
-    private static final Field STANDARD_WAVE_ENTITY_TAG = findStandardWaveEntityTagField();
-    private static final Field STANDARD_WAVE_ENTITY_MODIFIERS = findStandardWaveEntityModifiersField();
     private static final DecimalFormat NUMBER_FORMAT = new DecimalFormat("0.##");
     private static final Map<EntityType<?>, List<GatewayEntityRecipe>> BY_ENTITY = new HashMap<>();
     private static final Map<ItemStackKey, List<GatewayEntityRecipe>> BY_ITEM = new HashMap<>();
@@ -118,7 +118,7 @@ public final class GatewayEntityCache {
                 continue;
             }
 
-            ResourceLocation gatewayId = GatePearlItem.getGate(pearl).getId();
+            Identifier gatewayId = GatePearlItem.getGate(pearl).getId();
             if (gatewayId == null) {
                 JeiGateways.LOGGER.debug("Skipping pearl with null gateway id: {}", pearl);
                 continue;
@@ -316,62 +316,25 @@ public final class GatewayEntityCache {
     }
 
     private static EntityType<?> resolveStoredEntityType(WaveEntity waveEntity) {
-        if (!isStandardWaveEntity(waveEntity, STANDARD_WAVE_ENTITY_TYPE)) {
-            return null;
-        }
-        try {
-            Object value = STANDARD_WAVE_ENTITY_TYPE.get(waveEntity);
-            return value instanceof EntityType<?> type ? type : null;
-        }
-        catch (IllegalAccessException | IllegalArgumentException e) {
-            return null;
-        }
+        return waveEntity instanceof StandardWaveEntity standardWaveEntity ? standardWaveEntity.type() : null;
     }
 
     private static CompoundTag resolveStoredEntityTag(WaveEntity waveEntity) {
-        if (!isStandardWaveEntity(waveEntity, STANDARD_WAVE_ENTITY_TAG)) {
-            return null;
-        }
-        try {
-            Object value = STANDARD_WAVE_ENTITY_TAG.get(waveEntity);
-            if (value instanceof CompoundTag tag) {
-                return tag;
-            }
-            if (value instanceof Optional<?> optional && optional.orElse(null) instanceof CompoundTag tag) {
-                return tag;
-            }
-            return null;
-        }
-        catch (IllegalAccessException | IllegalArgumentException e) {
-            return null;
-        }
+        return waveEntity instanceof StandardWaveEntity standardWaveEntity
+                ? standardWaveEntity.tag().orElse(null)
+                : null;
     }
 
-    @SuppressWarnings("unchecked")
     private static List<WaveModifier> resolveStoredEntityModifiers(WaveEntity waveEntity) {
-        if (!isStandardWaveEntity(waveEntity, STANDARD_WAVE_ENTITY_MODIFIERS)) {
-            return List.of();
-        }
-        try {
-            Object value = STANDARD_WAVE_ENTITY_MODIFIERS.get(waveEntity);
-            return value instanceof List<?> list ? (List<WaveModifier>) list : List.of();
-        }
-        catch (IllegalAccessException | IllegalArgumentException e) {
-            return List.of();
-        }
-    }
-
-    private static boolean isStandardWaveEntity(WaveEntity waveEntity, Field field) {
-        return field != null && field.getDeclaringClass().isInstance(waveEntity);
+        return waveEntity instanceof StandardWaveEntity standardWaveEntity ? standardWaveEntity.modifiers() : List.of();
     }
 
     private static Set<ItemStackKey> getEntityLootItems(EntityType<?> entityType, LootTableResolver lootTableResolver, Map<EntityType<?>, Set<ItemStackKey>> entityLootCache) {
         return entityLootCache.computeIfAbsent(entityType, type -> {
             var lootTableKey = type.getDefaultLootTable();
-            if (lootTableKey == null) {
-                return Set.of();
-            }
-            return lootTableResolver.resolveItems(lootTableKey.location());
+            return lootTableKey.map(ResourceKey::identifier)
+                    .map(lootTableResolver::resolveItems)
+                    .orElseGet(Set::of);
         });
     }
 
@@ -383,12 +346,12 @@ public final class GatewayEntityCache {
 
     private static void collectRewardItem(Set<ItemStackKey> output, Reward reward, LootTableResolver lootTableResolver, Map<EntityType<?>, Set<ItemStackKey>> entityLootCache) {
         if (reward instanceof Reward.StackReward stackReward) {
-            addStack(output, stackReward.stack());
+            addStack(output, stackReward.stack().create());
             return;
         }
         if (reward instanceof Reward.StackListReward stackListReward) {
-            for (ItemStack stack : stackListReward.stacks()) {
-                addStack(output, stack);
+            for (ItemStackTemplate stack : stackListReward.stacks()) {
+                addStack(output, stack.create());
             }
             return;
         }
@@ -426,15 +389,15 @@ public final class GatewayEntityCache {
         return idx >= 0 ? path.substring(idx + 1) : path;
     }
 
-    private static ResourceLocation toGatewayId(ResourceLocation resourceId) {
+    private static Identifier toGatewayId(Identifier resourceId) {
         String path = resourceId.getPath();
         if (!path.startsWith("gateways/") || !path.endsWith(".json")) {
             return null;
         }
-        return ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), path.substring("gateways/".length(), path.length() - ".json".length()));
+        return Identifier.fromNamespaceAndPath(resourceId.getNamespace(), path.substring("gateways/".length(), path.length() - ".json".length()));
     }
 
-    private static ResourceLocation toLootTableId(ResourceLocation resourceId) {
+    private static Identifier toLootTableId(Identifier resourceId) {
         String path = resourceId.getPath();
         String prefix;
         if (path.startsWith("loot_table/")) {
@@ -449,17 +412,17 @@ public final class GatewayEntityCache {
         if (!path.endsWith(".json")) {
             return null;
         }
-        return ResourceLocation.fromNamespaceAndPath(resourceId.getNamespace(), path.substring(prefix.length(), path.length() - ".json".length()));
+        return Identifier.fromNamespaceAndPath(resourceId.getNamespace(), path.substring(prefix.length(), path.length() - ".json".length()));
     }
 
     private static LootTableDefinition parseLootTableDefinition(JsonObject root) {
         LinkedHashSet<ItemStackKey> items = new LinkedHashSet<>();
-        LinkedHashSet<ResourceLocation> references = new LinkedHashSet<>();
+        LinkedHashSet<Identifier> references = new LinkedHashSet<>();
         parseLootElement(root.get("pools"), items, references);
         return new LootTableDefinition(Set.copyOf(items), Set.copyOf(references));
     }
 
-    private static void parseLootElement(JsonElement element, Set<ItemStackKey> items, Set<ResourceLocation> references) {
+    private static void parseLootElement(JsonElement element, Set<ItemStackKey> items, Set<Identifier> references) {
         if (element == null || element.isJsonNull()) {
             return;
         }
@@ -477,22 +440,22 @@ public final class GatewayEntityCache {
         JsonObject object = element.getAsJsonObject();
         String type = getString(object, "type");
         if ("minecraft:item".equals(type)) {
-            ResourceLocation itemId = parseResourceLocation(getString(object, "name"));
+            Identifier itemId = parseIdentifier(getString(object, "name"));
             if (itemId != null) {
-                Item item = BuiltInRegistries.ITEM.get(itemId);
+                Item item = BuiltInRegistries.ITEM.getValue(itemId);
                 if (item != null && item != net.minecraft.world.item.Items.AIR) {
                     items.add(ItemStackKey.of(new ItemStack(item)));
                 }
             }
         }
         else if ("minecraft:loot_table".equals(type)) {
-            ResourceLocation lootTableId = parseResourceLocation(getString(object, "name"));
+            Identifier lootTableId = parseIdentifier(getString(object, "name"));
             if (lootTableId != null) {
                 references.add(lootTableId);
             }
         }
         else if ("minecraft:tag".equals(type)) {
-            ResourceLocation tagId = parseResourceLocation(getString(object, "name"));
+            Identifier tagId = parseIdentifier(getString(object, "name"));
             if (tagId != null) {
                 addTagItems(items, tagId);
             }
@@ -503,13 +466,11 @@ public final class GatewayEntityCache {
         parseLootElement(object.get("pools"), items, references);
     }
 
-    private static void addTagItems(Set<ItemStackKey> items, ResourceLocation tagId) {
+    private static void addTagItems(Set<ItemStackKey> items, Identifier tagId) {
         TagKey<Item> itemTag = TagKey.create(Registries.ITEM, tagId);
-        Optional<? extends net.minecraft.core.HolderSet.Named<Item>> optionalTag = BuiltInRegistries.ITEM.getTag(itemTag);
-        if (optionalTag.isEmpty()) {
-            return;
+        for (Holder<Item> holder : BuiltInRegistries.ITEM.getTagOrEmpty(itemTag)) {
+            items.add(ItemStackKey.of(new ItemStack(holder.value())));
         }
-        optionalTag.get().forEach(holder -> items.add(ItemStackKey.of(new ItemStack(holder.value()))));
     }
 
     private static List<ItemStack> materializeStacks(Collection<ItemStackKey> keys) {
@@ -535,50 +496,11 @@ public final class GatewayEntityCache {
         return element != null && element.isJsonPrimitive() ? element.getAsString() : null;
     }
 
-    private static ResourceLocation parseResourceLocation(String id) {
+    private static Identifier parseIdentifier(String id) {
         if (id == null || id.isBlank()) {
             return null;
         }
-        return ResourceLocation.tryParse(id);
-    }
-
-    private static Field findStandardWaveEntityTypeField() {
-        try {
-            Class<?> standardWaveEntity = Class.forName("dev.shadowsoffire.gateways.gate.StandardWaveEntity");
-            Field field = standardWaveEntity.getDeclaredField("type");
-            field.setAccessible(true);
-            return field;
-        }
-        catch (ReflectiveOperationException e) {
-            JeiGateways.LOGGER.warn("Failed to resolve StandardWaveEntity.type field", e);
-            return null;
-        }
-    }
-
-    private static Field findStandardWaveEntityTagField() {
-        try {
-            Class<?> standardWaveEntity = Class.forName("dev.shadowsoffire.gateways.gate.StandardWaveEntity");
-            Field field = standardWaveEntity.getDeclaredField("tag");
-            field.setAccessible(true);
-            return field;
-        }
-        catch (ReflectiveOperationException e) {
-            JeiGateways.LOGGER.warn("Failed to resolve StandardWaveEntity.tag field", e);
-            return null;
-        }
-    }
-
-    private static Field findStandardWaveEntityModifiersField() {
-        try {
-            Class<?> standardWaveEntity = Class.forName("dev.shadowsoffire.gateways.gate.StandardWaveEntity");
-            Field field = standardWaveEntity.getDeclaredField("modifiers");
-            field.setAccessible(true);
-            return field;
-        }
-        catch (ReflectiveOperationException e) {
-            JeiGateways.LOGGER.warn("Failed to resolve StandardWaveEntity.modifiers field", e);
-            return null;
-        }
+        return Identifier.tryParse(id);
     }
 
     private static List<Component> buildModifiers(List<WaveModifier> waveModifiers, CompoundTag entityTag) {
@@ -599,27 +521,27 @@ public final class GatewayEntityCache {
             return;
         }
 
-        if (entityTag.getBoolean("Glowing")) {
+        if (entityTag.getBooleanOr("Glowing", false)) {
             putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.glowing"));
         }
 
         if (entityTag.contains("Health")) {
-            putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.health", NUMBER_FORMAT.format(entityTag.getFloat("Health"))));
+            putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.health", NUMBER_FORMAT.format(entityTag.getFloatOr("Health", 0.0F))));
         }
 
-        if (entityTag.contains("ActiveEffects", CompoundTag.TAG_LIST)) {
-            entityTag.getList("ActiveEffects", CompoundTag.TAG_COMPOUND).forEach(tag -> {
+        if (entityTag.contains("ActiveEffects")) {
+            entityTag.getListOrEmpty("ActiveEffects").forEach(tag -> {
                 if (!(tag instanceof CompoundTag effectTag)) {
                     return;
                 }
-                String effectId = effectTag.contains("Id") ? effectTag.getString("Id") : effectTag.getString("forge:id");
+                String effectId = effectTag.getStringOr("Id", effectTag.getStringOr("forge:id", ""));
                 if (effectId.isBlank()) {
                     return;
                 }
-                ResourceLocation effectKey = ResourceLocation.tryParse(effectId);
-                MobEffect effect = effectKey == null ? null : BuiltInRegistries.MOB_EFFECT.get(effectKey);
+                Identifier effectKey = Identifier.tryParse(effectId);
+                MobEffect effect = effectKey == null ? null : BuiltInRegistries.MOB_EFFECT.getValue(effectKey);
                 Component effectName = effect == null ? Component.literal(effectId) : Component.translatable(effect.getDescriptionId());
-                int amplifier = effectTag.getInt("Amplifier") + 1;
+                int amplifier = effectTag.getIntOr("Amplifier", 0) + 1;
                 putModifier(modifiers, Component.translatable("jei.jei_gateways.modifier.effect", effectName, amplifier));
             });
         }
@@ -663,7 +585,7 @@ public final class GatewayEntityCache {
     private record WavePage(int waveLevel, List<GatewayEntityRecipe.LinkedEntity> entities, List<Component> modifiers) {
     }
 
-    private record LootTableDefinition(Set<ItemStackKey> directItems, Set<ResourceLocation> references) {
+    private record LootTableDefinition(Set<ItemStackKey> directItems, Set<Identifier> references) {
     }
 
     private record GatewayTooltipDefinition(String tooltipKey, String tooltipText) {
@@ -671,25 +593,25 @@ public final class GatewayEntityCache {
 
     private static final class LootTableResolver {
         private final ResourceManager resourceManager;
-        private final Map<ResourceLocation, ResourceLocation> resourceIdsByLootTableId;
-        private final Map<ResourceLocation, LootTableDefinition> definitions = new HashMap<>();
-        private final Map<ResourceLocation, Set<ItemStackKey>> resolvedItems = new HashMap<>();
-        private final Map<ResourceLocation, Optional<ResourceLocation>> canonicalIds = new HashMap<>();
+        private final Map<Identifier, Identifier> resourceIdsByLootTableId;
+        private final Map<Identifier, LootTableDefinition> definitions = new HashMap<>();
+        private final Map<Identifier, Set<ItemStackKey>> resolvedItems = new HashMap<>();
+        private final Map<Identifier, Optional<Identifier>> canonicalIds = new HashMap<>();
 
         private LootTableResolver(ResourceManager resourceManager) {
             this.resourceManager = resourceManager;
             this.resourceIdsByLootTableId = indexLootTableResources(resourceManager);
         }
 
-        private Set<ItemStackKey> resolveItems(ResourceLocation lootTableId) {
-            Optional<ResourceLocation> canonical = canonicalIds.computeIfAbsent(lootTableId, this::findCanonicalLootTableId);
+        private Set<ItemStackKey> resolveItems(Identifier lootTableId) {
+            Optional<Identifier> canonical = canonicalIds.computeIfAbsent(lootTableId, this::findCanonicalLootTableId);
             if (canonical.isEmpty()) {
                 return Set.of();
             }
             return resolveItems(canonical.get(), new HashSet<>());
         }
 
-        private Set<ItemStackKey> resolveItems(ResourceLocation canonicalLootTableId, Set<ResourceLocation> visiting) {
+        private Set<ItemStackKey> resolveItems(Identifier canonicalLootTableId, Set<Identifier> visiting) {
             Set<ItemStackKey> cached = resolvedItems.get(canonicalLootTableId);
             if (cached != null) {
                 return cached;
@@ -705,8 +627,8 @@ public final class GatewayEntityCache {
             }
 
             LinkedHashSet<ItemStackKey> result = new LinkedHashSet<>(definition.directItems());
-            for (ResourceLocation child : definition.references()) {
-                Optional<ResourceLocation> canonicalChild = canonicalIds.computeIfAbsent(child, this::findCanonicalLootTableId);
+            for (Identifier child : definition.references()) {
+                Optional<Identifier> canonicalChild = canonicalIds.computeIfAbsent(child, this::findCanonicalLootTableId);
                 canonicalChild.ifPresent(resourceLocation -> result.addAll(resolveItems(resourceLocation, visiting)));
             }
             visiting.remove(canonicalLootTableId);
@@ -715,8 +637,8 @@ public final class GatewayEntityCache {
             return immutable;
         }
 
-        private LootTableDefinition loadDefinition(ResourceLocation lootTableId) {
-            ResourceLocation resourceId = resourceIdsByLootTableId.get(lootTableId);
+        private LootTableDefinition loadDefinition(Identifier lootTableId) {
+            Identifier resourceId = resourceIdsByLootTableId.get(lootTableId);
             if (resourceId == null) {
                 return null;
             }
@@ -736,7 +658,7 @@ public final class GatewayEntityCache {
             }
         }
 
-        private Optional<ResourceLocation> findCanonicalLootTableId(ResourceLocation requestedLootTableId) {
+        private Optional<Identifier> findCanonicalLootTableId(Identifier requestedLootTableId) {
             if (resourceIdsByLootTableId.containsKey(requestedLootTableId)) {
                 return Optional.of(requestedLootTableId);
             }
@@ -754,12 +676,12 @@ public final class GatewayEntityCache {
                     .findFirst();
         }
 
-        private static Map<ResourceLocation, ResourceLocation> indexLootTableResources(ResourceManager resourceManager) {
-            Map<ResourceLocation, ResourceLocation> indexed = new HashMap<>();
+        private static Map<Identifier, Identifier> indexLootTableResources(ResourceManager resourceManager) {
+            Map<Identifier, Identifier> indexed = new HashMap<>();
             for (String root : List.of("loot_table", "loot_tables")) {
-                Map<ResourceLocation, Resource> resources = resourceManager.listResources(root, path -> path.getPath().endsWith(".json"));
-                for (ResourceLocation resourceId : resources.keySet()) {
-                    ResourceLocation lootTableId = toLootTableId(resourceId);
+                Map<Identifier, Resource> resources = resourceManager.listResources(root, path -> path.getPath().endsWith(".json"));
+                for (Identifier resourceId : resources.keySet()) {
+                    Identifier lootTableId = toLootTableId(resourceId);
                     if (lootTableId != null) {
                         indexed.putIfAbsent(lootTableId, resourceId);
                     }
@@ -771,16 +693,16 @@ public final class GatewayEntityCache {
 
     private static final class GatewayTooltipResolver {
         private final ResourceManager resourceManager;
-        private final Map<ResourceLocation, ResourceLocation> resourceIdsByGatewayId;
-        private final Map<ResourceLocation, GatewayTooltipDefinition> definitions = new HashMap<>();
-        private final Map<ResourceLocation, Optional<ResourceLocation>> canonicalIds = new HashMap<>();
+        private final Map<Identifier, Identifier> resourceIdsByGatewayId;
+        private final Map<Identifier, GatewayTooltipDefinition> definitions = new HashMap<>();
+        private final Map<Identifier, Optional<Identifier>> canonicalIds = new HashMap<>();
 
         private GatewayTooltipResolver(ResourceManager resourceManager) {
             this.resourceManager = resourceManager;
             this.resourceIdsByGatewayId = indexGatewayResources(resourceManager);
         }
 
-        private Component resolveTooltip(ResourceLocation gatewayId) {
+        private Component resolveTooltip(Identifier gatewayId) {
             String dynamicTooltipText = GatewaysJsCompat.getTooltipText(gatewayId);
             if (dynamicTooltipText != null) {
                 return Component.literal(dynamicTooltipText);
@@ -804,13 +726,13 @@ public final class GatewayEntityCache {
             return null;
         }
 
-        private GatewayTooltipDefinition getDefinition(ResourceLocation gatewayId) {
-            Optional<ResourceLocation> canonical = canonicalIds.computeIfAbsent(gatewayId, this::findCanonicalGatewayId);
+        private GatewayTooltipDefinition getDefinition(Identifier gatewayId) {
+            Optional<Identifier> canonical = canonicalIds.computeIfAbsent(gatewayId, this::findCanonicalGatewayId);
             return canonical.map(id -> definitions.computeIfAbsent(id, this::loadDefinition)).orElse(null);
         }
 
-        private GatewayTooltipDefinition loadDefinition(ResourceLocation gatewayId) {
-            ResourceLocation resourceId = resourceIdsByGatewayId.get(gatewayId);
+        private GatewayTooltipDefinition loadDefinition(Identifier gatewayId) {
+            Identifier resourceId = resourceIdsByGatewayId.get(gatewayId);
             if (resourceId == null) {
                 return null;
             }
@@ -833,7 +755,7 @@ public final class GatewayEntityCache {
             }
         }
 
-        private Optional<ResourceLocation> findCanonicalGatewayId(ResourceLocation requestedGatewayId) {
+        private Optional<Identifier> findCanonicalGatewayId(Identifier requestedGatewayId) {
             if (resourceIdsByGatewayId.containsKey(requestedGatewayId)) {
                 return Optional.of(requestedGatewayId);
             }
@@ -851,11 +773,11 @@ public final class GatewayEntityCache {
                     .findFirst();
         }
 
-        private static Map<ResourceLocation, ResourceLocation> indexGatewayResources(ResourceManager resourceManager) {
-            Map<ResourceLocation, ResourceLocation> indexed = new HashMap<>();
-            Map<ResourceLocation, Resource> resources = resourceManager.listResources("gateways", path -> path.getPath().endsWith(".json"));
-            for (ResourceLocation resourceId : resources.keySet()) {
-                ResourceLocation gatewayId = toGatewayId(resourceId);
+        private static Map<Identifier, Identifier> indexGatewayResources(ResourceManager resourceManager) {
+            Map<Identifier, Identifier> indexed = new HashMap<>();
+            Map<Identifier, Resource> resources = resourceManager.listResources("gateways", path -> path.getPath().endsWith(".json"));
+            for (Identifier resourceId : resources.keySet()) {
+                Identifier gatewayId = toGatewayId(resourceId);
                 if (gatewayId != null) {
                     indexed.put(gatewayId, resourceId);
                 }
@@ -869,7 +791,7 @@ public final class GatewayEntityCache {
     }
 
     public static final class ItemStackKey {
-        private final ResourceLocation itemId;
+        private final Identifier itemId;
         private final ItemStack stack;
         private final int hash;
 
@@ -888,7 +810,7 @@ public final class GatewayEntityCache {
         }
 
         public ItemStack toStack() {
-            Item item = BuiltInRegistries.ITEM.get(itemId);
+            Item item = BuiltInRegistries.ITEM.getValue(itemId);
             if (item == null || item == net.minecraft.world.item.Items.AIR) {
                 return ItemStack.EMPTY;
             }

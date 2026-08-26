@@ -4,8 +4,8 @@ import com.hp.jei_gateways.JeiGateways;
 import com.hp.jei_gateways.gateway.GatewayEntityRecipe;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
+import mezz.jei.api.gui.builder.ITooltipBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -16,9 +16,9 @@ import mezz.jei.api.recipe.category.IRecipeCategory;
 import net.minecraft.ChatFormatting;
 import net.minecraft.client.Minecraft;
 import net.minecraft.client.gui.Font;
-import net.minecraft.client.gui.GuiGraphics;
+import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.network.chat.Component;
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.item.ItemStack;
 
 import java.util.List;
@@ -36,7 +36,9 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
 
     private static final int HEADER_TEXT_X = 34;
     private static final int HEADER_NAME_Y = 8;
-    private static final int HEADER_TOOLTIP_Y = 22;
+    private static final int HEADER_TEXT_MAX_WIDTH = HEADER_BOX_WIDTH - HEADER_TEXT_X - 4;
+    private static final int HEADER_LINE_HEIGHT = 9;
+    private static final int HEADER_MAX_LINES = 3;
     private static final int HEADER_SLOT_X = 10;
     private static final int HEADER_SLOT_Y = 8;
 
@@ -55,12 +57,11 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     private static final int MODIFIER_LABEL_OFFSET = 14;
     private static final int MODIFIER_LINE_HEIGHT = 10;
     private static final int CONTENT_BOTTOM_PADDING = 8;
+    private static final int CONTENT_TEXT_WIDTH = CONTENT_WIDTH - 16 - INNER_PADDING_X - CONTENT_TEXT_X - 4;
 
-    private final IDrawableStatic background;
     private final IDrawable icon;
 
     public GatewayEntityCategory(IGuiHelper guiHelper, ItemStack iconStack) {
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack);
     }
 
@@ -75,13 +76,18 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public IDrawable getIcon() {
+        return icon;
     }
 
     @Override
-    public IDrawable getIcon() {
-        return icon;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return HEIGHT;
     }
 
     @Override
@@ -90,13 +96,13 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
                 .addItemStack(recipe.pearl())
                 .setStandardSlotBackground()
                 .setSlotName("pearl")
-                .addTooltipCallback((slot, tooltip) -> addPearlTooltip(recipe, tooltip));
+                .addRichTooltipCallback((slot, tooltip) -> addPearlTooltip(recipe, tooltip));
 
         for (GatewayEntityRecipe.LinkedEntity entity : recipe.waveEntities()) {
             builder.addSlot(RecipeIngredientRole.RENDER_ONLY, CONTENT_X + INNER_PADDING_X, CONTENT_Y + EGG_GRID_Y)
                     .addItemStack(entity.spawnEgg())
                     .setStandardSlotBackground()
-                    .addTooltipCallback((slot, tooltip) -> addWaveEntityTooltip(entity, tooltip));
+                    .addRichTooltipCallback((slot, tooltip) -> addWaveEntityTooltip(entity, tooltip));
         }
 
         builder.addInvisibleIngredients(RecipeIngredientRole.INPUT).addItemStack(recipe.pearl());
@@ -114,7 +120,7 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     }
 
     @Override
-    public void draw(GatewayEntityRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
+    public void draw(GatewayEntityRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY) {
         drawFixedHeader(recipe, guiGraphics, HEADER_BOX_X, HEADER_BOX_Y, HEADER_BOX_WIDTH);
         drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
     }
@@ -130,40 +136,44 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     }
 
     @Override
-    public ResourceLocation getRegistryName(GatewayEntityRecipe recipe) {
-        return ResourceLocation.fromNamespaceAndPath(JeiGateways.MODID, recipe.gatewayId().getNamespace() + "/" + recipe.gatewayId().getPath() + "/wave_" + recipe.waveLevel());
+    public Identifier getRegistryName(GatewayEntityRecipe recipe) {
+        return Identifier.fromNamespaceAndPath(JeiGateways.MODID, recipe.gatewayId().getNamespace() + "/" + recipe.gatewayId().getPath() + "/wave_" + recipe.waveLevel());
     }
 
-    private static void drawFixedHeader(GatewayEntityRecipe recipe, GuiGraphics guiGraphics, int x, int y, int width) {
+    private static void drawFixedHeader(GatewayEntityRecipe recipe, GuiGraphicsExtractor guiGraphics, int x, int y, int width) {
         Font font = Minecraft.getInstance().font;
         drawPanel(guiGraphics, x, y, width, HEADER_BOX_HEIGHT);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), x + HEADER_TEXT_X, y + HEADER_NAME_Y, 0xFF1F1F1F, false);
-        if (recipe.pearlTooltipText() != null) {
-            guiGraphics.drawString(font, recipe.pearlTooltipText(), x + HEADER_TEXT_X, y + HEADER_TOOLTIP_Y, 0xFF4A4A4A, false);
+        int lineY = y + HEADER_NAME_Y;
+        int linesLeft = HEADER_MAX_LINES;
+        int nameLines = JeiTextUtil.drawWrapped(guiGraphics, font, JeiTextUtil.blackName(recipe.pearl()), x + HEADER_TEXT_X, lineY, HEADER_TEXT_MAX_WIDTH, HEADER_LINE_HEIGHT, 0xFF000000, false, linesLeft);
+        lineY += nameLines * HEADER_LINE_HEIGHT;
+        linesLeft -= nameLines;
+        if (recipe.pearlTooltipText() != null && linesLeft > 0) {
+            JeiTextUtil.drawWrapped(guiGraphics, font, recipe.pearlTooltipText(), x + HEADER_TEXT_X, lineY, HEADER_TEXT_MAX_WIDTH, HEADER_LINE_HEIGHT, 0xFF000000, false, linesLeft);
         }
     }
 
-    static void drawScrollableContents(GatewayEntityRecipe recipe, GuiGraphics guiGraphics, int x, int y) {
+    static void drawScrollableContents(GatewayEntityRecipe recipe, GuiGraphicsExtractor guiGraphics, int x, int y) {
         Font font = Minecraft.getInstance().font;
         int contentX = x + INNER_PADDING_X + CONTENT_TEXT_X;
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.wave_level", recipe.waveLevel(), recipe.waveCount()), contentX, y + WAVE_LEVEL_Y, 0xFF1F1F1F, false);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.wave_entities"), contentX, y + ENTITY_LABEL_Y, 0xFF2A2A2A, false);
+        guiGraphics.text(font, Component.translatable("jei.jei_gateways.wave_level", recipe.waveLevel(), recipe.waveCount()), contentX, y + WAVE_LEVEL_Y, 0xFF1F1F1F, false);
+        guiGraphics.text(font, Component.translatable("jei.jei_gateways.wave_entities"), contentX, y + ENTITY_LABEL_Y, 0xFF2A2A2A, false);
 
         int modifierLabelY = getModifierStartY(recipe);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.wave_modifiers"), contentX, y + modifierLabelY, 0xFF2A2A2A, false);
+        guiGraphics.text(font, Component.translatable("jei.jei_gateways.wave_modifiers"), contentX, y + modifierLabelY, 0xFF2A2A2A, false);
 
         int lineY = y + modifierLabelY + MODIFIER_LABEL_OFFSET;
         if (recipe.waveModifiers().isEmpty()) {
-            guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.no_wave_modifiers"), contentX, lineY, 0xFF666666, false);
+            guiGraphics.text(font, Component.translatable("jei.jei_gateways.no_wave_modifiers"), contentX, lineY, 0xFF666666, false);
             return;
         }
         for (Component modifier : recipe.waveModifiers()) {
-            guiGraphics.drawString(font, modifier, contentX, lineY, 0xFF5D5DFF, false);
-            lineY += MODIFIER_LINE_HEIGHT;
+            int modifierLines = JeiTextUtil.drawWrapped(guiGraphics, font, modifier, contentX, lineY, CONTENT_TEXT_WIDTH, MODIFIER_LINE_HEIGHT, 0xFF5D5DFF, false, Integer.MAX_VALUE);
+            lineY += modifierLines * MODIFIER_LINE_HEIGHT;
         }
     }
 
-    private static void addPearlTooltip(GatewayEntityRecipe recipe, List<Component> tooltip) {
+    private static void addPearlTooltip(GatewayEntityRecipe recipe, ITooltipBuilder tooltip) {
         tooltip.add(Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("jei.jei_gateways.wave_level", recipe.waveLevel(), recipe.waveCount()).withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("jei.jei_gateways.entity_count", recipe.entityCount()).withStyle(ChatFormatting.GRAY));
@@ -172,7 +182,7 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
         }
     }
 
-    private static void addWaveEntityTooltip(GatewayEntityRecipe.LinkedEntity entity, List<Component> tooltip) {
+    private static void addWaveEntityTooltip(GatewayEntityRecipe.LinkedEntity entity, ITooltipBuilder tooltip) {
         tooltip.add(entity.displayName().copy().withStyle(ChatFormatting.GRAY));
         tooltip.add(Component.translatable("jei.jei_gateways.entity_stack_count", entity.count()).withStyle(ChatFormatting.GRAY));
         for (Component modifier : entity.modifiers()) {
@@ -202,8 +212,18 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
 
     static int getContentHeight(GatewayEntityRecipe recipe) {
         int rows = Math.max(1, (recipe.waveEntities().size() + EGG_GRID_COLUMNS - 1) / EGG_GRID_COLUMNS);
-        int modifierLines = Math.max(1, recipe.waveModifiers().size());
+        int modifierLines = getModifierLineCount(recipe);
         return getModifierStartY(recipe) + MODIFIER_LABEL_OFFSET + modifierLines * MODIFIER_LINE_HEIGHT + CONTENT_BOTTOM_PADDING;
+    }
+
+    private static int getModifierLineCount(GatewayEntityRecipe recipe) {
+        if (recipe.waveModifiers().isEmpty()) {
+            return 1;
+        }
+        Font font = Minecraft.getInstance().font;
+        return recipe.waveModifiers().stream()
+                .mapToInt(modifier -> JeiTextUtil.lineCount(font, modifier, CONTENT_TEXT_WIDTH))
+                .sum();
     }
 
     static int getModifierStartY(GatewayEntityRecipe recipe) {
@@ -211,7 +231,7 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
         return EGG_GRID_Y + rows * SLOT_SPACING + 4;
     }
 
-    static void drawPanel(GuiGraphics guiGraphics, int x, int y, int width, int height) {
+    static void drawPanel(GuiGraphicsExtractor guiGraphics, int x, int y, int width, int height) {
         guiGraphics.fill(x, y, x + width, y + height, 0xFFE3E3E3);
         guiGraphics.fill(x, y, x + width, y + 1, 0xFFF8F8F8);
         guiGraphics.fill(x, y, x + 1, y + height, 0xFFF8F8F8);

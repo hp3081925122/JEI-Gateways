@@ -7,8 +7,7 @@ import com.hp.jei_gateways.jei.JeiGatewaysPlugin;
 import net.neoforged.api.distmarker.Dist;
 import net.neoforged.bus.api.SubscribeEvent;
 import net.neoforged.fml.common.EventBusSubscriber;
-import net.neoforged.neoforge.client.event.RecipesUpdatedEvent;
-import net.neoforged.neoforge.event.TagsUpdatedEvent;
+import net.neoforged.neoforge.client.event.RecipesReceivedEvent;
 import net.neoforged.neoforge.event.server.ServerStoppedEvent;
 
 @EventBusSubscriber(modid = JeiGateways.MODID, value = Dist.CLIENT)
@@ -17,19 +16,10 @@ public final class ClientEvents {
     }
 
     @SubscribeEvent
-    public static void onRecipesUpdated(RecipesUpdatedEvent event) {
+    public static void onRecipesReceived(RecipesReceivedEvent event) {
         GatewayEntityCache.rebuild();
         GatewayLootCache.rebuild();
         JeiGatewaysPlugin.refreshRuntimeRecipes();
-    }
-
-    @SubscribeEvent
-    public static void onTagsUpdated(TagsUpdatedEvent event) {
-        if (event.shouldUpdateStaticData()) {
-            GatewayEntityCache.rebuild();
-            GatewayLootCache.rebuild();
-            JeiGatewaysPlugin.refreshRuntimeRecipes();
-        }
     }
 
     @SubscribeEvent

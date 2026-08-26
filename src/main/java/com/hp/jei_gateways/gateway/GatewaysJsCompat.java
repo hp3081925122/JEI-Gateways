@@ -1,6 +1,6 @@
 package com.hp.jei_gateways.gateway;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 
 import java.lang.reflect.Method;
 
@@ -12,25 +12,25 @@ final class GatewaysJsCompat {
     private GatewaysJsCompat() {
     }
 
-    static String getTooltipKey(ResourceLocation gatewayId) {
+    static String getTooltipKey(Identifier gatewayId) {
         return invokeString(GET_TOOLTIP_KEY, gatewayId);
     }
 
-    static String getTooltipText(ResourceLocation gatewayId) {
+    static String getTooltipText(Identifier gatewayId) {
         return invokeString(GET_TOOLTIP_TEXT, gatewayId);
     }
 
     private static Method findMethod(String methodName) {
         try {
             Class<?> clazz = Class.forName(MANAGER_CLASS_NAME);
-            return clazz.getMethod(methodName, ResourceLocation.class);
+            return clazz.getMethod(methodName, Identifier.class);
         }
         catch (ReflectiveOperationException ignored) {
             return null;
         }
     }
 
-    private static String invokeString(Method method, ResourceLocation gatewayId) {
+    private static String invokeString(Method method, Identifier gatewayId) {
         if (method == null || gatewayId == null) {
             return null;
         }

@@ -1,6 +1,6 @@
 package com.hp.jei_gateways.gateway;
 
-import net.minecraft.resources.ResourceLocation;
+import net.minecraft.resources.Identifier;
 import net.minecraft.world.entity.EntityType;
 import net.minecraft.world.item.Item;
 import net.minecraft.world.item.ItemStack;
@@ -21,7 +21,7 @@ final class LootJsCompat {
     private LootJsCompat() {
     }
 
-    static void appendLootTableRewards(ResourceLocation lootTableId, Set<GatewayEntityCache.ItemStackKey> output) {
+    static void appendLootTableRewards(Identifier lootTableId, Set<GatewayEntityCache.ItemStackKey> output) {
         if (!ModList.get().isLoaded(MODID)) {
             return;
         }
@@ -78,14 +78,14 @@ final class LootJsCompat {
     }
 
     @SuppressWarnings("unchecked")
-    private static boolean matchesLootTable(Object action, ResourceLocation lootTableId) throws ReflectiveOperationException {
+    private static boolean matchesLootTable(Object action, Identifier lootTableId) throws ReflectiveOperationException {
         Field filtersField = action.getClass().getDeclaredField("filters");
         filtersField.setAccessible(true);
         Object filters = filtersField.get(action);
         int length = Array.getLength(filters);
         for (int i = 0; i < length; i++) {
             Object filter = Array.get(filters, i);
-            if (filter instanceof Predicate<?> predicate && ((Predicate<ResourceLocation>) predicate).test(lootTableId)) {
+            if (filter instanceof Predicate<?> predicate && ((Predicate<Identifier>) predicate).test(lootTableId)) {
                 return true;
             }
         }

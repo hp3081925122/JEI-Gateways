@@ -2,18 +2,18 @@ plugins {
     id 'java-library'
     id 'eclipse'
     id 'idea'
-    id 'net.neoforged.moddev' version '2.0.141'
+    id 'net.neoforged.moddev' version '2.0.143'
 }
 
 group = mod_group_id
-version = "${mod_version}+mc${minecraft_version}"
+version = "${minecraft_version}-neoforge-${mod_version}"
 
 base {
     archivesName = mod_id
 }
 
 java {
-    toolchain.languageVersion = JavaLanguageVersion.of(21)
+    toolchain.languageVersion = JavaLanguageVersion.of(25)
 }
 
 neoForge {
@@ -37,7 +37,7 @@ neoForge {
         }
 
         data {
-            data()
+            clientData()
             programArguments.addAll '--mod', mod_id, '--all',
                     '--output', file('src/generated/resources/').absolutePath,
                     '--existing', file('src/main/resources/').absolutePath
@@ -70,42 +70,80 @@ repositories {
         url = 'https://maven.blamejared.com'
     }
     maven {
-        name = 'CurseMaven'
-        url = 'https://www.cursemaven.com'
+        name = 'Shadows'
+        url = 'https://maven.shadowsoffire.dev/releases'
         content {
-            includeGroup 'curse.maven'
+            includeGroup 'dev.shadowsoffire'
+        }
+    }
+    maven {
+        name = 'Curios'
+        url = 'https://maven.theillusivec4.top'
+        content {
+            includeGroupByRegex 'top\\.theillusivec4.*'
         }
     }
 }
 
 dependencies {
-    implementation "curse.maven:gateways-to-eternity-417802:${gateways_file_id}"
-    implementation "curse.maven:placebo-283644:${placebo_file_id}"
-    implementation "curse.maven:apothic-attributes-898963:${apothic_attributes_file_id}"
+    implementation "dev.shadowsoffire:GatewaysToEternity:${gateways_version}"
+    implementation "dev.shadowsoffire:Placebo:${placebo_version}"
+    implementation "dev.shadowsoffire:ApothicAttributes:${apothic_attributes_version}"
 
+    compileOnly "mezz.jei:jei-${minecraft_version}-common:${jei_version}"
+    compileOnly "mezz.jei:jei-${minecraft_version}-common-api:${jei_version}"
     compileOnly "mezz.jei:jei-${minecraft_version}-neoforge-api:${jei_version}"
     runtimeOnly "mezz.jei:jei-${minecraft_version}-neoforge:${jei_version}"
 }
 
+def generateModMetadata = tasks.register('generateModMetadata', ProcessResources) {
+    def replaceProperties = [
+            minecraft_version      : minecraft_version,
+            minecraft_version_range: minecraft_version_range,
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            gateways_version_range : gateways_version_range,
+            placebo_version_range  : placebo_version_range,
+            apothic_attributes_version_range: apothic_attributes_version_range,
+            jei_version_range      : jei_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_full_version       : project.version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
+    ]
+    inputs.properties replaceProperties
+    filteringCharset = 'UTF-8'
+    expand replaceProperties
+    from 'src/main/templates'
+    into 'build/generated/sources/modMetadata'
+}
+
+sourceSets.main.resources.srcDir generateModMetadata
+neoForge.ideSyncTask generateModMetadata
+
 tasks.named('processResources', ProcessResources).configure {
     def replaceProperties = [
-            minecraft_version   : minecraft_version,
+            minecraft_version      : minecraft_version,
             minecraft_version_range: minecraft_version_range,
-            neo_version         : neo_version,
-            neo_version_range   : neo_version_range,
-            loader_version_range: loader_version_range,
-            mod_id              : mod_id,
-            mod_name            : mod_name,
-            mod_license         : mod_license,
-            mod_version         : mod_version,
-            mod_full_version    : project.version,
-            mod_authors         : mod_authors,
-            mod_description     : mod_description
+            neo_version            : neo_version,
+            neo_version_range      : neo_version_range,
+            loader_version_range   : loader_version_range,
+            mod_id                 : mod_id,
+            mod_name               : mod_name,
+            mod_license            : mod_license,
+            mod_version            : mod_version,
+            mod_full_version       : project.version,
+            mod_authors            : mod_authors,
+            mod_description        : mod_description
     ]
 
     inputs.properties replaceProperties
 
-    filesMatching(['META-INF/neoforge.mods.toml', 'pack.mcmeta']) {
+    filesMatching(['pack.mcmeta']) {
         expand replaceProperties
     }
 }

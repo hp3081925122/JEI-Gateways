@@ -5,7 +5,6 @@ import com.hp.jei_gateways.gateway.GatewayEntityRecipe;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -43,7 +42,9 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     private static final int CONTENT_X = 6;
     private static final int CONTENT_Y = 64;
     private static final int CONTENT_WIDTH = 188;
-    private static final int CONTENT_HEIGHT = 130;
+    private static final int CONTENT_BOTTOM_MARGIN = 6;
+    private static final int MIN_CONTENT_HEIGHT = 50;
+    private static final int MIN_HEIGHT = CONTENT_Y + MIN_CONTENT_HEIGHT + CONTENT_BOTTOM_MARGIN;
 
     private static final int INNER_PADDING_X = 10;
     private static final int CONTENT_TEXT_X = 4;
@@ -56,11 +57,9 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     private static final int MODIFIER_LINE_HEIGHT = 10;
     private static final int CONTENT_BOTTOM_PADDING = 8;
 
-    private final IDrawableStatic background;
     private final IDrawable icon;
 
     public GatewayEntityCategory(IGuiHelper guiHelper, ItemStack iconStack) {
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack);
     }
 
@@ -75,8 +74,13 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return GatewayJeiLayout.fitHeight(HEIGHT, MIN_HEIGHT);
     }
 
     @Override
@@ -116,7 +120,6 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     @Override
     public void draw(GatewayEntityRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         drawFixedHeader(recipe, guiGraphics, HEADER_BOX_X, HEADER_BOX_Y, HEADER_BOX_WIDTH);
-        drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
     }
 
     @Override
@@ -124,7 +127,8 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
         List<IRecipeSlotDrawable> eggSlots = builder.getRecipeSlots().getSlots().stream()
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
-        GatewayEntityScrollWidget widget = new GatewayEntityScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT, eggSlots);
+        int contentHeight = getHeight() - CONTENT_Y - CONTENT_BOTTOM_MARGIN;
+        GatewayEntityScrollWidget widget = new GatewayEntityScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, contentHeight, eggSlots);
         builder.addSlottedWidget(widget, eggSlots);
         builder.addInputHandler(widget);
     }

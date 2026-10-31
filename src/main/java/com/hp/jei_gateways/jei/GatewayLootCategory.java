@@ -5,7 +5,6 @@ import com.hp.jei_gateways.gateway.GatewayLootRecipe;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
 import mezz.jei.api.recipe.IFocusGroup;
@@ -25,12 +24,11 @@ import java.util.List;
 public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public static final RecipeType<GatewayLootRecipe> TYPE = RecipeType.create(JeiGateways.MODID, "gateway_loot", GatewayLootRecipe.class);
     private static final int WIDTH = 180;
-    private static final int HEIGHT = 132;
     private static final int SLOT_SIZE = 18;
     private static final int PEARL_X = 8;
     private static final int PEARL_Y = 8;
     private static final int GRID_COLUMNS = 7;
-    private static final int VISIBLE_ROWS = 4;
+    private static final int MAX_VISIBLE_ROWS = 4;
     private static final int SCROLLBAR_EXTRA_WIDTH = 16;
     private static final int PANEL_PADDING = 5;
     private static final int PANEL_X = 8;
@@ -38,13 +36,12 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     private static final int GRID_X = PANEL_X + PANEL_PADDING;
     private static final int GRID_Y = PANEL_Y + PANEL_PADDING;
     private static final int PANEL_WIDTH = GRID_COLUMNS * SLOT_SIZE + SCROLLBAR_EXTRA_WIDTH + PANEL_PADDING * 2;
-    private static final int PANEL_HEIGHT = VISIBLE_ROWS * SLOT_SIZE + PANEL_PADDING * 2;
+    private static final int BOTTOM_MARGIN = 6;
+    private static final int HEIGHT_WITHOUT_ROWS = PANEL_Y + PANEL_PADDING * 2 + BOTTOM_MARGIN;
 
-    private final IDrawableStatic background;
     private final IDrawable icon;
 
     public GatewayLootCategory(IGuiHelper guiHelper, ItemStack iconStack) {
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack);
     }
 
@@ -59,8 +56,13 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return HEIGHT_WITHOUT_ROWS + getVisibleRows() * SLOT_SIZE;
     }
 
     @Override
@@ -86,7 +88,6 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public void draw(GatewayLootRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         drawSlotFrame(guiGraphics, PEARL_X, PEARL_Y);
-        GatewayEntityCategory.drawPanel(guiGraphics, PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), 30, 10, 0xFF1F1F1F, false);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 30, 24, 0xFF2A2A2A, false);
     }
@@ -96,7 +97,9 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
         List<mezz.jei.api.gui.ingredient.IRecipeSlotDrawable> outputSlots = builder.getRecipeSlots().getSlots().stream()
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
-        builder.addScrollGridWidget(outputSlots, GRID_COLUMNS, VISIBLE_ROWS)
+        int visibleRows = getVisibleRows();
+        builder.addWidget(new GatewayPanelWidget(PANEL_X, PANEL_Y, PANEL_WIDTH, visibleRows * SLOT_SIZE + PANEL_PADDING * 2));
+        builder.addScrollGridWidget(outputSlots, GRID_COLUMNS, visibleRows)
                 .setPosition(GRID_X, GRID_Y);
     }
 
@@ -106,6 +109,12 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
                 JeiGateways.MODID,
                 "loot/" + recipe.gatewayId().getNamespace() + "/" + recipe.gatewayId().getPath()
         );
+    }
+
+    private static int getVisibleRows() {
+        int maxHeight = HEIGHT_WITHOUT_ROWS + MAX_VISIBLE_ROWS * SLOT_SIZE;
+        int minHeight = HEIGHT_WITHOUT_ROWS + SLOT_SIZE;
+        return (GatewayJeiLayout.fitHeight(maxHeight, minHeight) - HEIGHT_WITHOUT_ROWS) / SLOT_SIZE;
     }
 
     private static void addPearlTooltip(GatewayLootRecipe recipe, List<Component> tooltip) {

@@ -64,6 +64,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
 
     @Override
     public void drawWidget(GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        GatewayEntityCategory.drawPanel(guiGraphics, 0, 0, this.area.width(), this.area.height());
         drawNineSlice(guiGraphics, this.scrollbarBackground, this.scrollArea);
         drawNineSlice(guiGraphics, this.scrollbarMarker, this.calculateScrollbarMarkerArea());
 

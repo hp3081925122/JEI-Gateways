@@ -35,7 +35,7 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     // 顶部信息框的位置和尺寸（显示珍珠名称）
     private static final int HEADER_BOX_X = 6;               // 信息框X坐标
     private static final int HEADER_BOX_Y = 14;              // 信息框Y坐标
-    private static final int HEADER_BOX_WIDTH = 198;         // 信息框宽度
+    private static final int HEADER_BOX_WIDTH = 188;         // 信息框宽度
     private static final int HEADER_BOX_HEIGHT = 46;         // 信息框高度
 
     // 珍珠物品槽的位置（相对于信息框左上角）
@@ -52,7 +52,7 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     // 滚动内容区域的位置和尺寸（显示刷怪蛋和波次修饰符）
     private static final int CONTENT_X = 6;                  // 滚动区域X坐标
     private static final int CONTENT_Y = 64;                 // 滚动区域Y坐标
-    private static final int CONTENT_WIDTH = 198;            // 滚动区域宽度
+    private static final int CONTENT_WIDTH = 188;            // 滚动区域宽度
     private static final int CONTENT_BOTTOM_MARGIN = 6;
     private static final int MIN_CONTENT_HEIGHT = 50;
     private static final int MIN_HEIGHT = CONTENT_Y + MIN_CONTENT_HEIGHT + CONTENT_BOTTOM_MARGIN;

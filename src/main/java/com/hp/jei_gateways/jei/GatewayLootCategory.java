@@ -27,6 +27,11 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     private static final int SLOT_SIZE = 18;
     private static final int PEARL_X = 8;
     private static final int PEARL_Y = 8;
+    private static final int HEADER_TEXT_X = 30;
+    private static final int HEADER_NAME_Y = 10;
+    private static final int HEADER_TEXT_MAX_WIDTH = WIDTH - HEADER_TEXT_X - 4;
+    private static final int HEADER_LINE_HEIGHT = 9;
+    private static final int HEADER_NAME_MAX_LINES = 2;
     private static final int GRID_COLUMNS = 7;
     private static final int MAX_VISIBLE_ROWS = 4;
     private static final int SCROLLBAR_EXTRA_WIDTH = 16;
@@ -88,8 +93,8 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public void draw(GatewayLootRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         drawSlotFrame(guiGraphics, PEARL_X, PEARL_Y);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), 30, 10, 0xFF1F1F1F, false);
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 30, 24, 0xFF2A2A2A, false);
+        int nameLines = JeiTextUtil.drawWrapped(guiGraphics, font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), HEADER_TEXT_X, HEADER_NAME_Y, HEADER_TEXT_MAX_WIDTH, HEADER_LINE_HEIGHT, 0xFF1F1F1F, HEADER_NAME_MAX_LINES);
+        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), HEADER_TEXT_X, HEADER_NAME_Y + nameLines * HEADER_LINE_HEIGHT + 5, 0xFF2A2A2A, false);
     }
 
     @Override

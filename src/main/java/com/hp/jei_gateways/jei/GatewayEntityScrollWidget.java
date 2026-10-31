@@ -90,6 +90,9 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
 
     @Override
     public void getTooltip(ITooltipBuilder tooltip, double mouseX, double mouseY) {
+        if (!contains(this.contentsArea, mouseX, mouseY)) {
+            return;
+        }
         double adjustedMouseY = mouseY + this.getScrollPixels();
         for (IRecipeSlotDrawable eggSlot : this.eggSlots) {
             if (eggSlot.isMouseOver(mouseX, adjustedMouseY)) {
@@ -101,6 +104,9 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
 
     @Override
     public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
+        if (!contains(this.contentsArea, mouseX, mouseY)) {
+            return Optional.empty();
+        }
         double adjustedMouseY = mouseY + this.getScrollPixels();
         for (IRecipeSlotDrawable eggSlot : this.eggSlots) {
             if (eggSlot.isMouseOver(mouseX, adjustedMouseY)) {

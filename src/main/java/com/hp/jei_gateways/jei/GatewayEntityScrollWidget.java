@@ -3,11 +3,14 @@ package com.hp.jei_gateways.jei;
 import com.hp.jei_gateways.gateway.GatewayEntityRecipe;
 import com.mojang.blaze3d.platform.InputConstants;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
+import mezz.jei.api.gui.drawable.IScalableDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.inputs.IJeiInputHandler;
 import mezz.jei.api.gui.inputs.IJeiUserInput;
 import mezz.jei.api.gui.inputs.RecipeSlotUnderMouse;
 import mezz.jei.api.gui.widgets.ISlottedRecipeWidget;
+import mezz.jei.common.Internal;
+import mezz.jei.common.gui.textures.Textures;
 import net.minecraft.client.gui.GuiGraphicsExtractor;
 import net.minecraft.client.gui.navigation.ScreenPosition;
 import net.minecraft.client.gui.navigation.ScreenRectangle;
@@ -22,10 +25,6 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
     private static final int SCROLLBAR_EXTRA_WIDTH = 16;
     private static final int MIN_SCROLL_MARKER_HEIGHT = 14;
     private static final int SCROLLBAR_WIDTH = 14;
-    private static final int BORDER_LIGHT = 0xFFF8F8F8;
-    private static final int BORDER_DARK = 0xFF8A8A8A;
-    private static final int PANEL_FILL = 0xFFE3E3E3;
-    private static final int MARKER_FILL = 0xFFB6B6B6;
 
     private final GatewayEntityRecipe recipe;
     private final List<IRecipeSlotDrawable> eggSlots;
@@ -34,6 +33,8 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
     private final Rect2i scrollArea;
     private final Rect2i contentsArea;
     private final int contentHeight;
+    private final IScalableDrawable scrollbarMarker;
+    private final IScalableDrawable scrollbarBackground;
     private double dragOriginY = -1.0D;
     private float scrollOffsetY = 0.0F;
 
@@ -45,6 +46,9 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
         this.scrollArea = new Rect2i(width - SCROLLBAR_WIDTH, 0, SCROLLBAR_WIDTH, height);
         this.contentsArea = new Rect2i(0, 0, width - SCROLLBAR_EXTRA_WIDTH, height);
         this.contentHeight = GatewayEntityCategory.getContentHeight(recipe);
+        Textures textures = Internal.getTextures();
+        this.scrollbarMarker = textures.getScrollbarMarker();
+        this.scrollbarBackground = textures.getScrollbarBackground();
     }
 
     @Override
@@ -59,9 +63,8 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
 
     @Override
     public void drawWidget(GuiGraphicsExtractor guiGraphics, double mouseX, double mouseY) {
-        drawPanel(guiGraphics, this.scrollArea);
-        Rect2i scrollbarMarkerArea = this.calculateScrollbarMarkerArea();
-        drawMarker(guiGraphics, scrollbarMarkerArea);
+        drawNineSlice(guiGraphics, this.scrollbarBackground, this.scrollArea);
+        drawNineSlice(guiGraphics, this.scrollbarMarker, this.calculateScrollbarMarkerArea());
 
         Matrix3x2fStack poseStack = guiGraphics.pose();
         guiGraphics.enableScissor(
@@ -200,27 +203,7 @@ public class GatewayEntityScrollWidget implements ISlottedRecipeWidget, IJeiInpu
                 && mouseY < rect.getY() + rect.getHeight();
     }
 
-    private static void drawPanel(GuiGraphicsExtractor guiGraphics, Rect2i rect) {
-        int x = rect.getX();
-        int y = rect.getY();
-        int width = rect.getWidth();
-        int height = rect.getHeight();
-        guiGraphics.fill(x, y, x + width, y + height, PANEL_FILL);
-        guiGraphics.fill(x, y, x + width, y + 1, BORDER_LIGHT);
-        guiGraphics.fill(x, y, x + 1, y + height, BORDER_LIGHT);
-        guiGraphics.fill(x + width - 1, y, x + width, y + height, BORDER_DARK);
-        guiGraphics.fill(x, y + height - 1, x + width, y + height, BORDER_DARK);
-    }
-
-    private static void drawMarker(GuiGraphicsExtractor guiGraphics, Rect2i rect) {
-        int x = rect.getX();
-        int y = rect.getY();
-        int width = rect.getWidth();
-        int height = rect.getHeight();
-        guiGraphics.fill(x, y, x + width, y + height, MARKER_FILL);
-        guiGraphics.fill(x, y, x + width, y + 1, BORDER_LIGHT);
-        guiGraphics.fill(x, y, x + 1, y + height, BORDER_LIGHT);
-        guiGraphics.fill(x + width - 1, y, x + width, y + height, BORDER_DARK);
-        guiGraphics.fill(x, y + height - 1, x + width, y + height, BORDER_DARK);
+    private static void drawNineSlice(GuiGraphicsExtractor guiGraphics, IScalableDrawable texture, Rect2i rect) {
+        texture.draw(guiGraphics, rect.getX(), rect.getY(), rect.getWidth(), rect.getHeight());
     }
 }

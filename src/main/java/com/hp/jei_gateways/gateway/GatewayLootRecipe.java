@@ -10,11 +10,12 @@ public record GatewayLootRecipe(
         ResourceLocation gatewayId,
         ItemStack pearl,
         Component pearlTooltipText,
-        List<ItemStack> outputs,
-        int pageIndex,
-        int pageCount,
-        int totalOutputCount
+        List<ItemStack> outputs
 ) {
+    public int totalOutputCount() {
+        return outputs.size();
+    }
+
     public boolean matchesPearl(ItemStack stack) {
         return !stack.isEmpty() && ItemStack.isSameItemSameComponents(pearl, stack);
     }

@@ -25,16 +25,20 @@ import java.util.List;
 public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public static final RecipeType<GatewayLootRecipe> TYPE = RecipeType.create(JeiGateways.MODID, "gateway_loot", GatewayLootRecipe.class);
     private static final int WIDTH = 180;
-    private static final int HEIGHT = 138;
+    private static final int HEIGHT = 132;
     private static final int SLOT_SIZE = 18;
     private static final int PEARL_X = 8;
     private static final int PEARL_Y = 8;
-    private static final int CONTENT_X = 8;
-    private static final int CONTENT_Y = 44;
-    private static final int CONTENT_WIDTH = 160;
-    private static final int CONTENT_HEIGHT = 82;
     private static final int GRID_COLUMNS = 7;
     private static final int VISIBLE_ROWS = 4;
+    private static final int SCROLLBAR_EXTRA_WIDTH = 16;
+    private static final int PANEL_PADDING = 5;
+    private static final int PANEL_X = 8;
+    private static final int PANEL_Y = 44;
+    private static final int GRID_X = PANEL_X + PANEL_PADDING;
+    private static final int GRID_Y = PANEL_Y + PANEL_PADDING;
+    private static final int PANEL_WIDTH = GRID_COLUMNS * SLOT_SIZE + SCROLLBAR_EXTRA_WIDTH + PANEL_PADDING * 2;
+    private static final int PANEL_HEIGHT = VISIBLE_ROWS * SLOT_SIZE + PANEL_PADDING * 2;
 
     private final IDrawableStatic background;
     private final IDrawable icon;
@@ -72,7 +76,7 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
                 .addTooltipCallback((slot, tooltip) -> addPearlTooltip(recipe, tooltip));
 
         for (ItemStack output : recipe.outputs()) {
-            builder.addSlot(RecipeIngredientRole.OUTPUT, CONTENT_X, CONTENT_Y)
+            builder.addSlot(RecipeIngredientRole.OUTPUT, GRID_X, GRID_Y)
                     .setStandardSlotBackground()
                     .addItemStack(output);
         }
@@ -82,7 +86,7 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public void draw(GatewayLootRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         drawSlotFrame(guiGraphics, PEARL_X, PEARL_Y);
-        GatewayEntityCategory.drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
+        GatewayEntityCategory.drawPanel(guiGraphics, PANEL_X, PANEL_Y, PANEL_WIDTH, PANEL_HEIGHT);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), 30, 10, 0xFF1F1F1F, false);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 30, 24, 0xFF2A2A2A, false);
     }
@@ -93,14 +97,14 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
         builder.addScrollGridWidget(outputSlots, GRID_COLUMNS, VISIBLE_ROWS)
-                .setPosition(CONTENT_X, CONTENT_Y);
+                .setPosition(GRID_X, GRID_Y);
     }
 
     @Override
     public ResourceLocation getRegistryName(GatewayLootRecipe recipe) {
         return ResourceLocation.fromNamespaceAndPath(
                 JeiGateways.MODID,
-                "loot/" + recipe.gatewayId().getNamespace() + "/" + recipe.gatewayId().getPath() + "/" + recipe.pageIndex()
+                "loot/" + recipe.gatewayId().getNamespace() + "/" + recipe.gatewayId().getPath()
         );
     }
 

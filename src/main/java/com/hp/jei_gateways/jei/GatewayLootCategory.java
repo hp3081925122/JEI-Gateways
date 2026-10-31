@@ -5,7 +5,6 @@ import com.hp.jei_gateways.gateway.GatewayLootRecipe;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -27,19 +26,18 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public static final RecipeType<GatewayLootRecipe> TYPE = RecipeType.create(JeiGateways.MODID, "gateway_loot", GatewayLootRecipe.class);
     private static final int WIDTH = 180;
     private static final int HEIGHT = 138;
+    private static final int MIN_HEIGHT = 96;
     private static final int SLOT_SIZE = 18;
     private static final int PEARL_X = 8;
     private static final int PEARL_Y = 8;
     private static final int CONTENT_X = 8;
     private static final int CONTENT_Y = 44;
     private static final int CONTENT_WIDTH = 160;
-    private static final int CONTENT_HEIGHT = 82;
+    private static final int CONTENT_BOTTOM_MARGIN = 12;
 
-    private final IDrawableStatic background;
     private final IDrawable icon;
 
     public GatewayLootCategory(IGuiHelper guiHelper, ItemStack iconStack) {
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack);
     }
 
@@ -54,8 +52,13 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return GatewayJeiLayout.fitHeight(HEIGHT, MIN_HEIGHT);
     }
 
     @Override
@@ -81,7 +84,6 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
     public void draw(GatewayLootRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         Font font = Minecraft.getInstance().font;
         drawSlotFrame(guiGraphics, PEARL_X, PEARL_Y);
-        GatewayEntityCategory.drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), 30, 10, 0xFF1F1F1F, false);
         guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.loot_total", recipe.totalOutputCount()), 30, 24, 0xFF2A2A2A, false);
     }
@@ -91,7 +93,8 @@ public class GatewayLootCategory implements IRecipeCategory<GatewayLootRecipe> {
         List<IRecipeSlotDrawable> outputSlots = builder.getRecipeSlots().getSlots().stream()
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
-        GatewayLootScrollWidget widget = new GatewayLootScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT, outputSlots);
+        int contentHeight = getHeight() - CONTENT_Y - CONTENT_BOTTOM_MARGIN;
+        GatewayLootScrollWidget widget = new GatewayLootScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, contentHeight, outputSlots);
         builder.addSlottedWidget(widget, outputSlots);
         builder.addInputHandler(widget);
     }

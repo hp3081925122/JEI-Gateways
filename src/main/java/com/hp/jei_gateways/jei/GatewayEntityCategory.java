@@ -5,7 +5,6 @@ import com.hp.jei_gateways.JeiGateways;
 import mezz.jei.api.constants.VanillaTypes;
 import mezz.jei.api.gui.builder.IRecipeLayoutBuilder;
 import mezz.jei.api.gui.drawable.IDrawable;
-import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.ingredient.IRecipeSlotsView;
 import mezz.jei.api.helpers.IGuiHelper;
@@ -50,7 +49,9 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     private static final int CONTENT_X = 6;                  // 滚动区域X坐标
     private static final int CONTENT_Y = 64;                 // 滚动区域Y坐标
     private static final int CONTENT_WIDTH = 198;            // 滚动区域宽度
-    private static final int CONTENT_HEIGHT = 138;           // 滚动区域高度
+    private static final int CONTENT_BOTTOM_MARGIN = 6;
+    private static final int MIN_CONTENT_HEIGHT = 50;
+    private static final int MIN_HEIGHT = CONTENT_Y + MIN_CONTENT_HEIGHT + CONTENT_BOTTOM_MARGIN;
 
     // 刷怪蛋网格的起始位置（相对于滚动区域的左上角）
     private static final int EGG_GRID_X = 10;                // 刷怪蛋网格起始X坐标
@@ -62,12 +63,9 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     private static final int SCROLLBAR_EXTRA_WIDTH = 16;      // 滚动条占用的额外宽度
 
     // 绘制的背景和图标
-    private final IDrawableStatic background;
     private final IDrawable icon;
 
     public GatewayEntityCategory(IGuiHelper guiHelper, ItemStack iconStack) {
-        // 创建空白的可绘制背景
-        this.background = guiHelper.createBlankDrawable(WIDTH, HEIGHT);
         // 使用珍珠物品作为类别图标
         this.icon = guiHelper.createDrawableIngredient(VanillaTypes.ITEM_STACK, iconStack);
     }
@@ -84,8 +82,13 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     }
 
     @Override
-    public IDrawable getBackground() {
-        return background;
+    public int getWidth() {
+        return WIDTH;
+    }
+
+    @Override
+    public int getHeight() {
+        return GatewayJeiLayout.fitHeight(HEIGHT, MIN_HEIGHT);
     }
 
     @Override
@@ -137,8 +140,6 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     public void draw(GatewayEntityRecipe recipe, IRecipeSlotsView recipeSlotsView, GuiGraphics guiGraphics, double mouseX, double mouseY) {
         // 绘制固定的顶部信息框
         drawFixedHeader(recipe, guiGraphics, HEADER_BOX_X, HEADER_BOX_Y, HEADER_BOX_WIDTH);
-        // 绘制滚动内容区域的背景面板
-        drawPanel(guiGraphics, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT);
     }
 
     @Override
@@ -148,7 +149,8 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
                 .filter(slot -> !"pearl".equals(slot.getSlotName().orElse("")))
                 .toList();
         // 创建滚动widget来管理刷怪蛋的显示和交互
-        GatewayEntityWaveScrollWidget widget = new GatewayEntityWaveScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, CONTENT_HEIGHT, eggSlots);
+        int contentHeight = getHeight() - CONTENT_Y - CONTENT_BOTTOM_MARGIN;
+        GatewayEntityWaveScrollWidget widget = new GatewayEntityWaveScrollWidget(recipe, CONTENT_X, CONTENT_Y, CONTENT_WIDTH, contentHeight, eggSlots);
         builder.addSlottedWidget(widget, eggSlots);
         builder.addInputHandler(widget);
     }

@@ -65,6 +65,7 @@ public class GatewayEntityWaveScrollWidget implements ISlottedRecipeWidget, IJei
 
     @Override
     public void drawWidget(GuiGraphics guiGraphics, double mouseX, double mouseY) {
+        GatewayEntityCategory.drawPanel(guiGraphics, 0, 0, this.area.width(), this.area.height());
         this.scrollbarBackground.draw(guiGraphics, this.scrollArea);
         ImmutableRect2i scrollbarMarkerArea = this.calculateScrollbarMarkerArea();
         this.scrollbarMarker.draw(guiGraphics, scrollbarMarkerArea);

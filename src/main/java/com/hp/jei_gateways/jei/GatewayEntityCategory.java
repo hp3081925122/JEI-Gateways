@@ -41,7 +41,11 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
     // 珍珠物品槽的位置（相对于信息框左上角）
     private static final int HEADER_TEXT_X = 34;             // 珍珠名称文字的X偏移
     private static final int HEADER_NAME_Y = 8;              // 珍珠名称文字的Y偏移
-    private static final int HEADER_TOOLTIP_Y = 22;          // 珍珠额外提示文字的Y偏移
+    private static final int HEADER_TEXT_MAX_WIDTH = HEADER_BOX_WIDTH - HEADER_TEXT_X - 4;
+    private static final int HEADER_LINE_HEIGHT = 9;
+    private static final int HEADER_MAX_LINES = 3;
+    private static final int HEADER_TOOLTIP_GAP = 5;
+    private static final int HEADER_BOTTOM_PADDING = 3;
     private static final int HEADER_SLOT_X = 10;             // 珍珠槽的X偏移
     private static final int HEADER_SLOT_Y = 8;              // 珍珠槽的Y偏移
 
@@ -169,9 +173,12 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
         // 绘制面板背景
         drawPanel(guiGraphics, x, y, width, HEADER_BOX_HEIGHT);
         // 绘制珍珠名称
-        guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), x + HEADER_TEXT_X, y + HEADER_NAME_Y, 0xFF1F1F1F, false);
+        int textX = x + HEADER_TEXT_X;
+        int nameLines = JeiTextUtil.drawWrapped(guiGraphics, font, Component.translatable("jei.jei_gateways.name", recipe.pearl().getHoverName()), textX, y + HEADER_NAME_Y, HEADER_TEXT_MAX_WIDTH, HEADER_LINE_HEIGHT, 0xFF1F1F1F, HEADER_MAX_LINES);
         if (recipe.pearlTooltipText() != null) {
-            guiGraphics.drawString(font, recipe.pearlTooltipText(), x + HEADER_TEXT_X, y + HEADER_TOOLTIP_Y, 0xFF4A4A4A, false);
+            int tooltipY = HEADER_NAME_Y + nameLines * HEADER_LINE_HEIGHT + HEADER_TOOLTIP_GAP;
+            int tooltipLines = (HEADER_BOX_HEIGHT - HEADER_BOTTOM_PADDING - tooltipY) / HEADER_LINE_HEIGHT;
+            JeiTextUtil.drawWrapped(guiGraphics, font, recipe.pearlTooltipText(), textX, y + tooltipY, HEADER_TEXT_MAX_WIDTH, HEADER_LINE_HEIGHT, 0xFF4A4A4A, tooltipLines);
         }
     }
 
@@ -216,9 +223,10 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
             guiGraphics.drawString(font, Component.translatable("jei.jei_gateways.no_wave_modifiers"), x + 4, lineY, 0xFF666666, false);
             return;
         }
+        int textWidth = width - 8;
         for (Component modifier : recipe.waveModifiers()) {
-            guiGraphics.drawString(font, modifier, x + 4, lineY, 0xFF1F1F1F, false);
-            lineY += 10;  // 每行下移10像素
+            int modifierLines = JeiTextUtil.drawWrapped(guiGraphics, font, modifier, x + 4, lineY, textWidth, 10, 0xFF1F1F1F, Integer.MAX_VALUE);
+            lineY += modifierLines * 10;
         }
     }
 
@@ -229,7 +237,11 @@ public class GatewayEntityCategory implements IRecipeCategory<GatewayEntityRecip
         // 计算刷怪蛋占据的行数
         int rows = (recipe.waveEntities().size() + EGG_GRID_COLUMNS - 1) / EGG_GRID_COLUMNS;
         // 计算修饰符行数（至少1行）
-        int modifierLines = Math.max(1, recipe.waveModifiers().size());
+        Font font = Minecraft.getInstance().font;
+        int textWidth = getContentWidth() - SCROLLBAR_EXTRA_WIDTH - 8;
+        int modifierLines = Math.max(1, recipe.waveModifiers().stream()
+                .mapToInt(modifier -> JeiTextUtil.lineCount(font, modifier, textWidth))
+                .sum());
         // 总高度 = 修饰符起始Y + 修饰符区域高度 + 底部留白
         return getModifierStartY(recipe) + 12 + modifierLines * 10 + 8;
     }

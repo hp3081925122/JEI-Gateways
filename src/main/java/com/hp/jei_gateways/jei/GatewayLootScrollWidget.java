@@ -4,6 +4,7 @@ import com.hp.jei_gateways.gateway.GatewayLootRecipe;
 import com.mojang.blaze3d.platform.InputConstants;
 import com.mojang.blaze3d.vertex.PoseStack;
 import mezz.jei.api.gui.builder.ITooltipBuilder;
+import mezz.jei.api.gui.drawable.IDrawableStatic;
 import mezz.jei.api.gui.ingredient.IRecipeSlotDrawable;
 import mezz.jei.api.gui.inputs.IJeiInputHandler;
 import mezz.jei.api.gui.inputs.IJeiUserInput;
@@ -36,7 +37,9 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
     private final ImmutableRect2i contentsArea;
     private final DrawableNineSliceTexture scrollbarMarker;
     private final DrawableNineSliceTexture scrollbarBackground;
+    private final IDrawableStatic emptySlot;
     private final int contentHeight;
+    private final int slotCellCount;
     private double dragOriginY = -1.0D;
     private float scrollOffsetY = 0.0F;
 
@@ -48,7 +51,11 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
         Textures textures = Internal.getTextures();
         this.scrollbarMarker = textures.getScrollbarMarker();
         this.scrollbarBackground = textures.getScrollbarBackground();
+        this.emptySlot = textures.getSlot();
         this.contentHeight = calculateContentHeight(recipe);
+        int visibleRows = Math.max(1, (height - GRID_Y) / SLOT_SPACING);
+        int itemRows = (outputSlots.size() + GRID_COLUMNS - 1) / GRID_COLUMNS;
+        this.slotCellCount = Math.max(visibleRows, itemRows) * GRID_COLUMNS;
     }
 
     @Override
@@ -74,6 +81,7 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
         poseStack.pushPose();
         int scrollPixels = this.getScrollPixels();
         poseStack.translate(0.0D, -scrollPixels, 0.0D);
+        this.drawEmptySlots(guiGraphics);
         this.drawOutputSlots(guiGraphics);
         poseStack.popPose();
         guiGraphics.disableScissor();
@@ -81,6 +89,9 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
 
     @Override
     public void getTooltip(ITooltipBuilder tooltip, double mouseX, double mouseY) {
+        if (!this.contentsArea.contains(mouseX, mouseY)) {
+            return;
+        }
         double adjustedMouseY = mouseY + this.getScrollPixels();
         for (IRecipeSlotDrawable outputSlot : this.outputSlots) {
             if (outputSlot.isMouseOver(mouseX, adjustedMouseY)) {
@@ -92,6 +103,9 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
 
     @Override
     public Optional<RecipeSlotUnderMouse> getSlotUnderMouse(double mouseX, double mouseY) {
+        if (!this.contentsArea.contains(mouseX, mouseY)) {
+            return Optional.empty();
+        }
         double adjustedMouseY = mouseY + this.getScrollPixels();
         for (IRecipeSlotDrawable outputSlot : this.outputSlots) {
             if (outputSlot.isMouseOver(mouseX, adjustedMouseY)) {
@@ -143,6 +157,12 @@ public class GatewayLootScrollWidget implements ISlottedRecipeWidget, IJeiInputH
         double topY = mouseY - this.dragOriginY;
         this.moveScrollbarTo(scrollbarMarkerArea, topY);
         return true;
+    }
+
+    private void drawEmptySlots(GuiGraphics guiGraphics) {
+        for (int i = this.outputSlots.size(); i < this.slotCellCount; i++) {
+            this.emptySlot.draw(guiGraphics, GRID_X + (i % GRID_COLUMNS) * SLOT_SPACING, GRID_Y + (i / GRID_COLUMNS) * SLOT_SPACING);
+        }
     }
 
     private void drawOutputSlots(GuiGraphics guiGraphics) {
